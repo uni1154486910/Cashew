@@ -1343,7 +1343,7 @@ PlatformOS? getPlatform({bool ignoreEmulation = false}) {
   if (appStateSettings["iOSEmulate"] == true && ignoreEmulation == false) {
     return PlatformOS.isIOS;
   } else if (kIsWeb) {
-    return PlatformOS.web;
+    return PlatformOS.isAndroid; // 修改此处，让 Web 端模拟 Android
   } else if (Platform.isIOS) {
     return PlatformOS.isIOS;
   } else if (Platform.isAndroid) {

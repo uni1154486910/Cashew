@@ -715,9 +715,7 @@ showHelpRestorePopup(BuildContext context) {
 }
 
 bool hidePremiumPopup() {
-  return premiumPopupEnabled == false ||
-      appStateSettings["purchaseID"] != null ||
-      appStateSettings["previewDemo"] == true;
+  return true;
 }
 
 Future<bool> premiumPopupPushRoute(BuildContext context) async {
@@ -862,7 +860,7 @@ class ProductsState extends State<Products> {
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: Duration(milliseconds: 700),
-      child: appStateSettings["purchaseID"] != null
+      child: true // appStateSettings["purchaseID"] != null
           ? ManageSubscription()
           : kIsWeb || hasProducts == false
               ? loading == true
@@ -1404,7 +1402,7 @@ class PremiumBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kIsWeb) return SizedBox.shrink();
     double borderRadius = 15;
-    bool purchased = appStateSettings["purchaseID"] != null;
+    bool purchased = true; // appStateSettings["purchaseID"] != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -1517,7 +1515,7 @@ class PremiumBanner extends StatelessWidget {
                               ],
                             ),
                           ),
-                          appStateSettings["purchaseID"] != null
+                          true // appStateSettings["purchaseID"] != null
                               ? SizedBox.shrink()
                               : Icon(
                                   appStateSettings["outlinedIcons"]
