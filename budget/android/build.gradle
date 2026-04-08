@@ -62,19 +62,19 @@ subprojects {
         androidExt.namespace = "dev.cashew.${sanitizedName}"
     }
 
-    // Keep Kotlin/Java target aligned for older third-party plugins on AGP 8+.
+    // Keep Kotlin/Java target aligned across third-party plugins on AGP 8+.
     def ensureKotlinJvmTarget = {
         def androidExt = project.extensions.findByName("android")
         if (androidExt != null && androidExt.hasProperty("compileOptions")) {
             androidExt.compileOptions {
-                sourceCompatibility JavaVersion.VERSION_1_8
-                targetCompatibility JavaVersion.VERSION_1_8
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
             }
         }
 
         project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
             kotlinOptions {
-                jvmTarget = "1.8"
+                jvmTarget = "17"
             }
         }
     }
