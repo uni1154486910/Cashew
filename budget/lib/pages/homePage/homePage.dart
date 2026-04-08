@@ -40,6 +40,8 @@ import 'package:budget/widgets/util/rightSideClipper.dart';
 import 'package:flutter/services.dart';
 import 'package:budget/widgets/util/checkWidgetLaunch.dart';
 import 'package:flutter/foundation.dart';
+import 'package:budget/pages/addTransactionPage.dart';
+import 'package:budget/widgets/openPopup.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -244,13 +246,15 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     return SwipeToSelectTransactions(
       listID: "0",
-      child: PullDownToRefreshSync(
+      child: _PullDownToAddTransaction(
         scrollController: _scrollController,
-        child: Stack(
-          children: [
-            AndroidOnly(child: CheckWidgetLaunch()),
-            AndroidOnly(child: RenderHomePageWidgets()),
-            Scaffold(
+        child: PullDownToRefreshSync(
+          scrollController: _scrollController,
+          child: Stack(
+            children: [
+              AndroidOnly(child: CheckWidgetLaunch()),
+              AndroidOnly(child: RenderHomePageWidgets()),
+              Scaffold(
               resizeToAvoidBottomInset: false,
               body: ScrollbarWrap(
                 scrollController: _scrollController,
@@ -413,6 +417,7 @@ class HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -551,6 +556,231 @@ class _HomePageRatingBoxState extends State<HomePageRatingBox> {
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _PullDownToAddTransaction extends StatefulWidget {
+  const _PullDownToAddTransaction({
+    required this.child,
+    required this.scrollController,
+  });
+
+  final Widget child;
+  final ScrollController scrollController;
+
+  @override
+  State<_PullDownToAddTransaction> createState() =>
+      _PullDownToAddTransactionState();
+}
+
+class _PullDownToAddTransactionState extends State<_PullDownToAddTransaction>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  double _dragY = 0;
+  double _dragX = 0;
+  bool _active = false;
+  bool _thresholdReached = false;
+  bool _navigating = false;
+
+  static const double _maxPull = 70;
+  static const double _dragSpeed = 0.4;
+  static const double _swipeDownThreshold = 12;
+  static const double _xCancelThreshold = 40;
+  static const double _indicatorHeight = 56;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 300),
+      reverseDuration: Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool _shouldHandle() {
+    return !enableSwipeDownToRefresh(context) &&
+        selectingTransactionsActive == 0 &&
+        !_navigating;
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (!_shouldHandle()) {
+      _active = false;
+      return;
+    }
+    _active = widget.scrollController.offset <= 0;
+    _dragY = 0;
+    _dragX = 0;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (!_shouldHandle() || !_active) return;
+    if (_dragX > _xCancelThreshold) return;
+
+    _dragY += event.delta.dy * _dragSpeed;
+    if (_dragY < 0) _dragY = 0;
+
+    if (_dragY > _swipeDownThreshold) {
+      double progress =
+          ((_dragY - _swipeDownThreshold) / _maxPull).clamp(0.0, 1.0);
+      _controller.value = progress;
+    } else {
+      _dragX += event.delta.dx.abs();
+    }
+
+    if (_controller.value >= 1.0 && !_thresholdReached) {
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _thresholdReached = true;
+      });
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (_thresholdReached && _active && !_navigating) {
+      _navigateToAdd();
+    } else {
+      _controller.reverse();
+    }
+    _active = false;
+    _dragY = 0;
+    _dragX = 0;
+    if (_thresholdReached) {
+      setState(() {
+        _thresholdReached = false;
+      });
+    }
+  }
+
+  Future<void> _navigateToAdd() async {
+    _navigating = true;
+    HapticFeedback.mediumImpact();
+
+    await _controller.animateTo(1.0, duration: Duration(milliseconds: 80));
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      PageRouteBuilder(
+        opaque: true,
+        transitionDuration: Duration(milliseconds: 400),
+        reverseTransitionDuration: Duration(milliseconds: 300),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final slide = Tween(begin: Offset(0, -1.0), end: Offset.zero)
+              .chain(CurveTween(curve: Curves.easeOutCubic));
+          return SlideTransition(
+            position: animation.drive(slide),
+            child: FadeTransition(
+              opacity: CurveTween(curve: Curves.easeOut).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return AddTransactionPage(
+            routesToPopAfterDelete: RoutesToPopAfterDelete.None,
+          );
+        },
+      ),
+    );
+
+    if (mounted) {
+      _controller.reverse();
+      setState(() {
+        _navigating = false;
+        _thresholdReached = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topPadding = MediaQuery.viewPaddingOf(context).top;
+    final totalH = _indicatorHeight + topPadding;
+
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+
+    return Stack(
+      children: [
+        AnimatedBuilder(
+          animation: curved,
+          builder: (context, _) {
+            if (curved.value <= 0) return SizedBox.shrink();
+            return Transform.translate(
+              offset: Offset(0, -totalH * (1 - curved.value)),
+              child: Container(
+                height: totalH,
+                width: double.infinity,
+                padding: EdgeInsets.only(top: topPadding),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                ),
+                child: Center(
+                  child: Opacity(
+                    opacity: curved.value.clamp(0.0, 1.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedSwitcher(
+                          duration: Duration(milliseconds: 200),
+                          child: Icon(
+                            _thresholdReached
+                                ? Icons.add_circle_outline_rounded
+                                : Icons.arrow_downward_rounded,
+                            key: ValueKey(_thresholdReached),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            size: 20,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        TextFont(
+                          text: _thresholdReached
+                              ? "release-add-transaction".tr()
+                              : "pull-down-add-transaction".tr(),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          textColor: Theme.of(context)
+                              .colorScheme
+                              .onPrimaryContainer,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        AnimatedBuilder(
+          animation: curved,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, totalH * curved.value),
+              child: child,
+            );
+          },
+          child: Listener(
+            onPointerDown: _onPointerDown,
+            onPointerMove: _onPointerMove,
+            onPointerUp: _onPointerUp,
+            behavior: HitTestBehavior.translucent,
+            child: widget.child,
+          ),
+        ),
+      ],
     );
   }
 }

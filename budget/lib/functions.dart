@@ -1,9 +1,13 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+
 import 'package:budget/database/tables.dart';
 import 'package:budget/main.dart';
 import 'package:budget/pages/subscriptionsPage.dart';
+import 'package:budget/struct/currencyFunctions.dart';
 import 'package:budget/struct/databaseGlobal.dart';
+import 'package:budget/struct/randomConstants.dart';
+import 'package:budget/struct/settings.dart';
 import 'package:budget/widgets/globalSnackbar.dart';
 import 'package:budget/widgets/navigationFramework.dart';
 import 'package:budget/widgets/openPopup.dart';
@@ -12,20 +16,18 @@ import 'package:budget/widgets/restartApp.dart';
 import 'package:budget/widgets/selectAmount.dart';
 import 'package:budget/widgets/textInput.dart';
 import 'package:budget/widgets/timeDigits.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
-import './colors.dart';
-import 'package:flutter/material.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:universal_io/io.dart';
 import 'package:universal_html/html.dart' as html;
-import 'package:budget/struct/settings.dart';
-import 'package:budget/struct/currencyFunctions.dart';
-import 'package:budget/struct/randomConstants.dart';
+import 'package:universal_io/io.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import './colors.dart';
 
 extension CapExtension on String {
   String get capitalizeFirst =>
@@ -567,6 +569,8 @@ BudgetReoccurence mapRecurrence(String? recurrenceString) {
     return BudgetReoccurence.monthly;
   } else if (recurrenceString == "Yearly") {
     return BudgetReoccurence.yearly;
+  } else if (recurrenceString == "Workday") {
+    return BudgetReoccurence.workday;
   }
   return BudgetReoccurence.monthly;
 }

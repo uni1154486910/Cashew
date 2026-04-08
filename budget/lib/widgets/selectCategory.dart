@@ -1,6 +1,7 @@
 import 'package:budget/colors.dart';
 import 'package:budget/database/tables.dart';
 import 'package:budget/functions.dart';
+import 'package:budget/pages/addButton.dart';
 import 'package:budget/pages/addCategoryPage.dart';
 import 'package:budget/struct/databaseGlobal.dart';
 import 'package:budget/struct/settings.dart';
@@ -16,8 +17,6 @@ import 'package:flutter/material.dart'
     hide SliverReorderableList, ReorderableDelayedDragStartListener;
 import 'package:flutter/services.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
-
-import 'package:budget/pages/addButton.dart';
 
 class SelectCategory extends StatefulWidget {
   SelectCategory({
@@ -176,9 +175,12 @@ class _SelectCategoryState extends State<SelectCategory> {
                     child: CategoryIcon(
                       enableTooltip: category.name.length > 10,
                       categoryPk: category.categoryPk,
-                      size: 42,
-                      sizePadding: 28,
-                      correctionEmojiPaddingBottom: 5,
+                      size: 30,
+                      sizePadding: 16,
+                      correctionEmojiPaddingBottom: 3,
+                      margin: EdgeInsetsDirectional.only(
+                          start: 12, end: 12, top: 4, bottom: 2),
+                      labelSize: 9,
                       label: widget.labelIcon,
                       onTap: () {
                         if (widget.nextWithCategory != null) {

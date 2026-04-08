@@ -175,8 +175,8 @@ class CategoryIcon extends StatelessWidget {
         ),
         label
             ? Container(
-                margin: EdgeInsetsDirectional.only(top: 3),
-                width: 60,
+                margin: EdgeInsetsDirectional.only(top: 2),
+                width: size + sizePadding + 8,
                 child: Center(
                   child: TextFont(
                     textAlign: TextAlign.center,
