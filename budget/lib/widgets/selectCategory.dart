@@ -176,9 +176,12 @@ class _SelectCategoryState extends State<SelectCategory> {
                     child: CategoryIcon(
                       enableTooltip: category.name.length > 10,
                       categoryPk: category.categoryPk,
-                      size: 42,
-                      sizePadding: 28,
-                      correctionEmojiPaddingBottom: 5,
+                      size: 35,
+                      sizePadding: 20,
+                      margin: EdgeInsetsDirectional.only(
+                          start: 5, end: 5, top: 4, bottom: 1),
+                      correctionEmojiPaddingBottom: 3,
+                      labelSize: 9,
                       label: widget.labelIcon,
                       onTap: () {
                         if (widget.nextWithCategory != null) {
@@ -257,13 +260,13 @@ class _SelectCategoryState extends State<SelectCategory> {
                           : Padding(
                               key: ValueKey(2),
                               padding: const EdgeInsetsDirectional.only(
-                                bottom: 21,
-                                top: 8,
+                                bottom: 1,
+                                top: 4,
                               ),
                               child: AddButton(
                                 onTap: () {},
                                 margin: EdgeInsetsDirectional.symmetric(
-                                    horizontal: 7),
+                                    horizontal: 5),
                                 openPage: AddCategoryPage(
                                     routesToPopAfterDelete:
                                         RoutesToPopAfterDelete.None,
@@ -271,7 +274,9 @@ class _SelectCategoryState extends State<SelectCategory> {
                                         widget.mainCategoryPks?[0],
                                     initiallyIsExpense:
                                         widget.selectedIncome != true),
-                                width: 70,
+                                width: 55,
+                                height: 55,
+                                labelUnder: "+",
                               ),
                             ),
                     ],
