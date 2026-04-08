@@ -802,6 +802,8 @@
   "major-change-14-1": "通过 Google 云端硬盘为交易添加照片和文件附件",
   "ending": "结束",
   "until-forever": "直到永远",
+  "pull-down-add-transaction": "下拉添加交易",
+  "release-add-transaction": "松开添加交易",
   "goal-reached": "已达成目标！",
   "goal-overdue": "逾期目标",
   "save": "节省",

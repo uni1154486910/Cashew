@@ -802,6 +802,8 @@
   "major-change-14-1": "Attach photos or files to transactions via Google Drive",
   "ending": "ending",
   "until-forever": "Until Forever",
+  "pull-down-add-transaction": "Pull down to add",
+  "release-add-transaction": "Release to add",
   "goal-reached": "Goal reached!",
   "goal-overdue": "Goal overdue",
   "save": "Save",
