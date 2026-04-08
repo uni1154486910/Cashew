@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.9.0'
+    ext.kotlin_version = '1.9.22'
     repositories {
         google()
         jcenter()
@@ -7,7 +7,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
+        classpath 'com.android.tools.build:gradle:8.2.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath 'com.google.gms:google-services:4.3.14'
     }
@@ -25,56 +25,6 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(':app')
-
-    // AGP 8+ requires namespace. Some third-party plugins still rely on manifest package.
-    def ensureNamespace = {
-        def androidExt = project.extensions.findByName("android")
-        if (androidExt == null || !androidExt.hasProperty("namespace")) {
-            return
-        }
-
-        def currentNamespace = androidExt.namespace
-        if (currentNamespace != null && currentNamespace.toString().trim()) {
-            return
-        }
-
-        def manifestFile = project.file("src/main/AndroidManifest.xml")
-        if (manifestFile.exists()) {
-            def manifestText = manifestFile.getText("UTF-8")
-            def matcher = manifestText =~ /package\s*=\s*"([^"]+)"/
-            if (matcher.find()) {
-                androidExt.namespace = matcher.group(1)
-                return
-            }
-        }
-
-        def fallbackGroup = project.group?.toString()
-        if (fallbackGroup && fallbackGroup != "unspecified") {
-            androidExt.namespace = fallbackGroup
-            return
-        }
-
-        // Last fallback for old plugins without namespace/package/group.
-        def sanitizedName = project.name.replaceAll(/[^A-Za-z0-9_.]/, "_")
-        if (sanitizedName ==~ /^[0-9].*/) {
-            sanitizedName = "x${sanitizedName}"
-        }
-        androidExt.namespace = "dev.cashew.${sanitizedName}"
-    }
-
-    // Force Kotlin/Java target alignment across all Android tasks on AGP 8+.
-    project.tasks.withType(JavaCompile).configureEach {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
-        }
-    }
-
-    project.pluginManager.withPlugin("com.android.application") { ensureNamespace() }
-    project.pluginManager.withPlugin("com.android.library") { ensureNamespace() }
 }
 
 tasks.register("clean", Delete) {
