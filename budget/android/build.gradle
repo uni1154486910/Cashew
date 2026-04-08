@@ -25,6 +25,42 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(':app')
+
+    // AGP 8+ requires namespace. Some third-party plugins still rely on manifest package.
+    afterEvaluate { subproject ->
+        def androidExt = subproject.extensions.findByName("android")
+        if (androidExt == null || !androidExt.hasProperty("namespace")) {
+            return
+        }
+
+        def currentNamespace = androidExt.namespace
+        if (currentNamespace != null && currentNamespace.toString().trim()) {
+            return
+        }
+
+        def manifestFile = subproject.file("src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
+            def manifestText = manifestFile.getText("UTF-8")
+            def matcher = manifestText =~ /package\s*=\s*"([^"]+)"/
+            if (matcher.find()) {
+                androidExt.namespace = matcher.group(1)
+                return
+            }
+        }
+
+        def fallbackGroup = subproject.group?.toString()
+        if (fallbackGroup && fallbackGroup != "unspecified") {
+            androidExt.namespace = fallbackGroup
+            return
+        }
+
+        // Last fallback for old plugins without namespace/package/group.
+        def sanitizedName = subproject.name.replaceAll(/[^A-Za-z0-9_.]/, "_")
+        if (sanitizedName ==~ /^[0-9].*/) {
+            sanitizedName = "x${sanitizedName}"
+        }
+        androidExt.namespace = "dev.cashew.${sanitizedName}"
+    }
 }
 
 tasks.register("clean", Delete) {
