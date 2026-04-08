@@ -27,8 +27,8 @@ subprojects {
     project.evaluationDependsOn(':app')
 
     // AGP 8+ requires namespace. Some third-party plugins still rely on manifest package.
-    afterEvaluate { subproject ->
-        def androidExt = subproject.extensions.findByName("android")
+    def ensureNamespace = {
+        def androidExt = project.extensions.findByName("android")
         if (androidExt == null || !androidExt.hasProperty("namespace")) {
             return
         }
@@ -38,7 +38,7 @@ subprojects {
             return
         }
 
-        def manifestFile = subproject.file("src/main/AndroidManifest.xml")
+        def manifestFile = project.file("src/main/AndroidManifest.xml")
         if (manifestFile.exists()) {
             def manifestText = manifestFile.getText("UTF-8")
             def matcher = manifestText =~ /package\s*=\s*"([^"]+)"/
@@ -48,19 +48,22 @@ subprojects {
             }
         }
 
-        def fallbackGroup = subproject.group?.toString()
+        def fallbackGroup = project.group?.toString()
         if (fallbackGroup && fallbackGroup != "unspecified") {
             androidExt.namespace = fallbackGroup
             return
         }
 
         // Last fallback for old plugins without namespace/package/group.
-        def sanitizedName = subproject.name.replaceAll(/[^A-Za-z0-9_.]/, "_")
+        def sanitizedName = project.name.replaceAll(/[^A-Za-z0-9_.]/, "_")
         if (sanitizedName ==~ /^[0-9].*/) {
             sanitizedName = "x${sanitizedName}"
         }
         androidExt.namespace = "dev.cashew.${sanitizedName}"
     }
+
+    project.pluginManager.withPlugin("com.android.application") { ensureNamespace() }
+    project.pluginManager.withPlugin("com.android.library") { ensureNamespace() }
 }
 
 tasks.register("clean", Delete) {
