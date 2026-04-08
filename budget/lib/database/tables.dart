@@ -39,7 +39,7 @@ const int COLOUR_LIMIT = 50;
 const int DEFAULT_LIMIT = 100000;
 const int DEFAULT_OFFSET = 0;
 
-enum BudgetReoccurence { custom, daily, weekly, monthly, yearly }
+enum BudgetReoccurence { custom, daily, weekly, monthly, yearly, workday }
 
 enum TransactionSpecialType {
   upcoming,
@@ -4210,6 +4210,9 @@ class FinanceDatabase extends _$FinanceDatabase {
         budget.periodLength >= maxTimePeriodWeeks)
       budget = budget.copyWith(periodLength: maxTimePeriodWeeks);
     else if (budget.reoccurrence == BudgetReoccurence.daily &&
+        budget.periodLength >= maxTimePeriodDays)
+      budget = budget.copyWith(periodLength: maxTimePeriodDays);
+    else if (budget.reoccurrence == BudgetReoccurence.workday &&
         budget.periodLength >= maxTimePeriodDays)
       budget = budget.copyWith(periodLength: maxTimePeriodDays);
 

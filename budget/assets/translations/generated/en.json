@@ -269,6 +269,8 @@
   "showing-transactions-from": "Showing transactions from",
   "days": "days",
   "day": "day",
+  "workday": "Workday",
+  "workdays": "Workdays",
   "category-to-transfer-all-transactions-to": "Category to transfer all transactions to",
   "merge-category": "Merge Category",
   "merge-into": "Merge into",

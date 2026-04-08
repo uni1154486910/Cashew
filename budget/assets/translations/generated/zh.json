@@ -269,6 +269,8 @@
   "showing-transactions-from": "交易显示来源",
   "days": "天",
   "day": "天",
+  "workday": "工作日",
+  "workdays": "工作日",
   "category-to-transfer-all-transactions-to": "迁移所有交易至该类别",
   "merge-category": "合并类别",
   "merge-into": "合并至",

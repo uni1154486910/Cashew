@@ -77,6 +77,7 @@ class SelectAmount extends StatefulWidget {
     this.decimals,
     this.amountTappableBuilder,
     this.showCalculation = true,
+    this.numberPadBuilder,
   }) : super(key: key);
   final Function(double, String) setSelectedAmount;
   final String amountPassed;
@@ -101,6 +102,12 @@ class SelectAmount extends StatefulWidget {
   final Widget Function(void Function() onLongPress, String amountConverted)?
       amountTappableBuilder;
   final bool showCalculation;
+  final Widget Function({
+    required Function(String) addToAmount,
+    required VoidCallback removeToAmount,
+    required VoidCallback removeAll,
+    required bool Function() canChange,
+  })? numberPadBuilder;
 
   @override
   _SelectAmountState createState() => _SelectAmountState();
@@ -876,17 +883,25 @@ class _SelectAmountState extends State<SelectAmount> {
                       ),
                     ),
               SizedBox(height: 5),
-              NumberPadAmount(
-                extraWidgetAboveNumbers: widget.extraWidgetAboveNumbers,
-                addToAmount: addToAmount,
-                enableDecimal: true,
-                removeToAmount: removeToAmount,
-                removeAll: removeAll,
-                padding: widget.padding,
-                canChange: canChange,
-                setState: () => setState(() {}),
-                enableCalculator: true,
-              ),
+              if (widget.numberPadBuilder != null)
+                widget.numberPadBuilder!(
+                  addToAmount: addToAmount,
+                  removeToAmount: removeToAmount,
+                  removeAll: removeAll,
+                  canChange: canChange,
+                )
+              else
+                NumberPadAmount(
+                  extraWidgetAboveNumbers: widget.extraWidgetAboveNumbers,
+                  addToAmount: addToAmount,
+                  enableDecimal: true,
+                  removeToAmount: removeToAmount,
+                  removeAll: removeAll,
+                  padding: widget.padding,
+                  canChange: canChange,
+                  setState: () => setState(() {}),
+                  enableCalculator: true,
+                ),
               SizedBox(height: 15),
               if (widget.hideNextButton == false)
                 Padding(

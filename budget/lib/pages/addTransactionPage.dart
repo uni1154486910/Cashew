@@ -782,35 +782,15 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           return;
         }
         await premiumPopupAddTransaction(context);
-        // 屏蔽自动弹出的标题、分类、金额序列
-        // if (widget.startInitialAddTransactionSequence == false) return;
-        // if (appStateSettings["askForTransactionTitle"]) {
-        //   openBottomSheet(
-        //     context,
-        //     // Only allow full snap when entering a title
-        //     popupWithKeyboard: true,
-        //     SelectTitle(
-        //       selectedTitle: selectedTitle,
-        //       setSelectedNote: setSelectedNoteController,
-        //       setSelectedTitle: setSelectedTitleController,
-        //       setSelectedCategory: setSelectedCategory,
-        //       setSelectedSubCategory: setSelectedSubCategory,
-        //       next: () {
-        //         afterSetTitle();
-        //       },
-        //       noteInputController: _noteInputController,
-        //       setSelectedNoteController: setSelectedNoteController,
-        //       setSelectedDateTime: (DateTime date) {
-        //         setState(() {
-        //           selectedDate = date;
-        //         });
-        //       },
-        //       selectedDate: widget.selectedDate,
-        //     ),
-        //   );
-        // } else {
-        //   afterSetTitle();
-        // }
+
+        // 默认选中第一个分类
+        if (selectedCategory == null) {
+          List<TransactionCategory> categories =
+              await database.getAllCategories();
+          if (categories.isNotEmpty) {
+            setSelectedCategory(categories.first);
+          }
+        }
       });
     }
     if (widget.selectedBudget != null) {
@@ -1100,11 +1080,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                 bottom: false,
                 child: Padding(
                   padding: const EdgeInsetsDirectional.only(
-                      start: 4, end: 12, top: 2, bottom: 0),
+                      start: 4, end: 12, top: 12, bottom: 8),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, size: 22),
+                        icon: Icon(Icons.arrow_back, size: 24),
                         onPressed: () async {
                           if (widget.transaction != null) {
                             discardChangesPopup(
@@ -1140,23 +1120,23 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                         return GestureDetector(
                           onTap: () => setSelectedIncome(isIncome),
                           child: Padding(
-                            padding: const EdgeInsetsDirectional.only(start: 6, end: 6),
+                            padding: const EdgeInsetsDirectional.only(start: 12, end: 12),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 TextFont(
                                   text: label,
-                                  fontSize: 16,
+                                  fontSize: 17,
                                   fontWeight: isActive ? FontWeight.bold : FontWeight.w400,
                                   textColor: isActive
                                       ? Theme.of(context).colorScheme.onSurface
-                                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
                                 ),
-                                SizedBox(height: 4),
+                                SizedBox(height: 6),
                                 AnimatedContainer(
                                   duration: Duration(milliseconds: 200),
-                                  height: 2.5,
-                                  width: isActive ? 28 : 0,
+                                  height: 3,
+                                  width: isActive ? 32 : 0,
                                   decoration: BoxDecoration(
                                     color: categoryColor,
                                     borderRadius: BorderRadius.circular(2),
@@ -1183,16 +1163,39 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                             appStateSettings["outlinedIcons"]
                                 ? Icons.delete_outlined
                                 : Icons.delete_rounded,
-                            size: 20,
+                            size: 22,
                           ),
                         ),
+                      IconButton(
+                        tooltip: "repetitive".tr(),
+                        onPressed: () {
+                          if (selectedType == TransactionSpecialType.repetitive) {
+                            setSelectedType("Default");
+                          } else {
+                            setSelectedType("Repetitive");
+                          }
+                        },
+                        icon: Icon(
+                          selectedType == TransactionSpecialType.repetitive
+                              ? (appStateSettings["outlinedIcons"]
+                                  ? Icons.repeat_on_outlined
+                                  : Icons.repeat_on_rounded)
+                              : (appStateSettings["outlinedIcons"]
+                                  ? Icons.repeat_outlined
+                                  : Icons.repeat_rounded),
+                          size: 22,
+                          color: selectedType == TransactionSpecialType.repetitive
+                              ? categoryColor
+                              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
 
-            Divider(height: 1, thickness: 0.5, color: Theme.of(context).dividerColor.withOpacity(0.15)),
+            SizedBox(height: 12),
 
             // ─── Category row ───
             SelectCategory(
@@ -1204,10 +1207,12 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               popRoute: false,
               addButton: true,
               labelIcon: true,
-              horizontalListViewHeight: 68,
+              horizontalListViewHeight: 72,
               selectedIncome: null,
-              listPadding: const EdgeInsetsDirectional.symmetric(horizontal: 6),
+              listPadding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
             ),
+
+            SizedBox(height: 8),
 
             // Sub-categories
             if (selectedCategory != null)
@@ -1229,19 +1234,23 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                     AnimatedExpanded(
                       expand: selectedType == TransactionSpecialType.repetitive ||
                           selectedType == TransactionSpecialType.subscription,
-                      child: Padding(
-                        padding: const EdgeInsetsDirectional.symmetric(
-                            vertical: 6, horizontal: 16),
+                      child: Container(
+                        margin: const EdgeInsetsDirectional.only(
+                            top: 12, start: 16, end: 16, bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Column(
                           children: [
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 TextFont(
                                   text: "repeat-every".tr(),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -1272,17 +1281,15 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       internalPadding: EdgeInsetsDirectional.symmetric(
-                                          vertical: 3, horizontal: 5),
+                                          vertical: 4, horizontal: 8),
                                       padding: EdgeInsetsDirectional.symmetric(
-                                          vertical: 0, horizontal: 3),
+                                          vertical: 0, horizontal: 4),
                                     ),
                                     TappableTextEntry(
                                       addTappableBackground: true,
                                       title: selectedRecurrenceDisplay
                                           .toString()
-                                          .toLowerCase()
-                                          .tr()
-                                          .toLowerCase(),
+                                          .tr(),
                                       placeholder: "",
                                       onTap: () {
                                         selectRecurrence(
@@ -1304,88 +1311,93 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       internalPadding: EdgeInsetsDirectional.symmetric(
-                                          vertical: 3, horizontal: 5),
+                                          vertical: 4, horizontal: 8),
                                       padding: EdgeInsetsDirectional.symmetric(
-                                          vertical: 0, horizontal: 3),
+                                          vertical: 0, horizontal: 4),
                                     ),
                                   ],
                                 )
                               ],
                             ),
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                            SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 TextFont(
-                                  text: "until".tr() + " ",
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                                  text: "until".tr(),
+                                  fontSize: 14,
+                                  textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
-                                TappableTextEntry(
-                                  addTappableBackground: true,
-                                  title: selectedEndDate == null
-                                      ? "forever".tr()
-                                      : getWordedDateShortMore(selectedEndDate!),
-                                  placeholder: "",
-                                  onTap: () async {
-                                    final DateTime? picked = await showCustomDatePicker(
-                                      context,
-                                      selectedEndDate ?? selectedDate,
-                                    );
-                                    if (picked != null) setSelectedEndDate(picked);
-                                  },
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  internalPadding: EdgeInsetsDirectional.symmetric(
-                                      vertical: 3, horizontal: 5),
-                                  padding: EdgeInsetsDirectional.symmetric(
-                                      vertical: 0, horizontal: 3),
-                                ),
-                                Builder(builder: (context) {
-                                  int? numberRepeats = widget.transaction
-                                              ?.createdAnotherFutureTransaction ==
-                                          true
-                                      ? null
-                                      : countTransactionOccurrences(
-                                          type: selectedType,
-                                          reoccurrence: selectedRecurrenceEnum,
-                                          periodLength: selectedPeriodLength,
-                                          dateCreated: selectedDate,
-                                          endDate: selectedEndDate,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    TappableTextEntry(
+                                      addTappableBackground: true,
+                                      title: selectedEndDate == null
+                                          ? "until-forever".tr()
+                                          : getWordedDateShortMore(selectedEndDate!),
+                                      placeholder: "",
+                                      onTap: () async {
+                                        final DateTime? picked = await showCustomDatePicker(
+                                          context,
+                                          selectedEndDate ?? selectedDate,
                                         );
-                                  return AnimatedSizeSwitcher(
-                                    child: numberRepeats != null
-                                        ? Padding(
-                                            padding: const EdgeInsetsDirectional.symmetric(
-                                                horizontal: 4),
-                                            child: TextFont(
+                                        if (picked != null) setSelectedEndDate(picked);
+                                      },
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      internalPadding: EdgeInsetsDirectional.symmetric(
+                                          vertical: 4, horizontal: 8),
+                                      padding: EdgeInsetsDirectional.symmetric(
+                                          vertical: 0, horizontal: 4),
+                                    ),
+                                    Builder(builder: (context) {
+                                      int? numberRepeats = widget.transaction
+                                                  ?.createdAnotherFutureTransaction ==
+                                              true
+                                          ? null
+                                          : countTransactionOccurrences(
+                                              type: selectedType,
+                                              reoccurrence: selectedRecurrenceEnum,
+                                              periodLength: selectedPeriodLength,
+                                              dateCreated: selectedDate,
+                                              endDate: selectedEndDate,
+                                            );
+                                      return AnimatedSizeSwitcher(
+                                        child: numberRepeats != null
+                                            ? Padding(
+                                                padding: const EdgeInsetsDirectional.symmetric(
+                                                    horizontal: 4),
+                                                child: TextFont(
+                                                  key: ValueKey(1),
+                                                  fontSize: 12,
+                                                  textColor: getColor(context, "textLight"),
+                                                  text: "( \u00d7" +
+                                                      numberRepeats.toString() +
+                                                      " )",
+                                                ),
+                                              )
+                                            : Container(key: ValueKey(2)),
+                                      );
+                                    }),
+                                    AnimatedSizeSwitcher(
+                                      child: selectedEndDate != null
+                                          ? Opacity(
                                               key: ValueKey(1),
-                                              fontSize: 12,
-                                              textColor: getColor(context, "textLight"),
-                                              text: "( \u00d7" +
-                                                  numberRepeats.toString() +
-                                                  " )",
-                                            ),
-                                          )
-                                        : Container(key: ValueKey(2)),
-                                  );
-                                }),
-                                AnimatedSizeSwitcher(
-                                  child: selectedEndDate != null
-                                      ? Opacity(
-                                          key: ValueKey(1),
-                                          opacity: 0.5,
-                                          child: IconButtonScaled(
-                                            tooltip: "clear".tr(),
-                                            iconData: Icons.close_rounded,
-                                            iconSize: 12,
-                                            scale: 1.2,
-                                            onTap: () {
-                                              setSelectedEndDate(null);
-                                            },
-                                          ),
-                                        )
-                                      : Container(key: ValueKey(2)),
+                                              opacity: 0.5,
+                                              child: IconButtonScaled(
+                                                tooltip: "clear".tr(),
+                                                iconData: Icons.close_rounded,
+                                                iconSize: 12,
+                                                scale: 1.2,
+                                                onTap: () {
+                                                  setSelectedEndDate(null);
+                                                },
+                                              ),
+                                            )
+                                          : Container(key: ValueKey(2)),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -1402,7 +1414,8 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
             // Notes bar
             Container(
-              padding: const EdgeInsetsDirectional.symmetric(horizontal: 12, vertical: 5),
+              height: 40,
+              padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
@@ -1422,25 +1435,22 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                   ),
                   SizedBox(width: 6),
                   Expanded(
-                    child: SizedBox(
-                      height: 28,
-                      child: TextField(
-                        controller: _noteInputController,
-                        style: TextStyle(fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: "notes-placeholder".tr(),
-                          hintStyle: TextStyle(
-                            fontSize: 13,
-                            color: getColor(context, "textLight"),
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsetsDirectional.only(bottom: 12),
-                          isDense: true,
+                    child: TextField(
+                      controller: _noteInputController,
+                      style: TextStyle(fontSize: 13, height: 1.2),
+                      decoration: InputDecoration(
+                        hintText: "notes-placeholder".tr(),
+                        hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: getColor(context, "textLight"),
                         ),
-                        onChanged: (text) {
-                          setSelectedNoteController(text, setInput: false);
-                        },
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsetsDirectional.zero,
                       ),
+                      onChanged: (text) {
+                        setSelectedNoteController(text, setInput: false);
+                      },
                     ),
                   ),
                   SizedBox(width: 8),
@@ -1454,7 +1464,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                         decimals: getSelectedWallet(listen: true)?.decimals,
                         currencyKey: getSelectedWallet(listen: true)?.currency,
                       ),
-                      fontSize: 18,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       textColor: (selectedAmount ?? 0) == 0
                           ? getColor(context, "textLight")
@@ -1469,7 +1479,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
             // Quick tags row (date, time, transaction type, wallet, budget, etc.)
             Container(
-              height: 34,
+              height: 36,
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
@@ -1479,7 +1489,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               ),
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsetsDirectional.symmetric(horizontal: 8),
+                padding: const EdgeInsetsDirectional.symmetric(horizontal: 6),
                 children: [
                   _QuickTagChip(
                     icon: appStateSettings["outlinedIcons"]
@@ -1518,7 +1528,8 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                       }
                     },
                   ),
-                  // Transaction type tags
+                  // Transaction type tags (Hidden as requested, replaced by top bar icon)
+                  /*
                   ...transactionTypes.map((item) {
                     bool isActive = selectedType == item;
                     String label = transactionTypeDisplayToEnum[item]
@@ -1539,6 +1550,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                       },
                     );
                   }),
+                  */
                   if (Provider.of<AllWallets>(context).list.length > 1)
                     _QuickTagChip(
                       icon: appStateSettings["outlinedIcons"]
@@ -1577,6 +1589,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                       );
                     },
                   ),
+                  /*
                   _QuickTagChip(
                     icon: selectedPaid
                         ? (appStateSettings["outlinedIcons"]
@@ -1593,6 +1606,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                       });
                     },
                   ),
+                  */
                   _QuickTagChip(
                     icon: appStateSettings["outlinedIcons"]
                         ? Icons.more_horiz_outlined
@@ -1661,129 +1675,50 @@ class _AddTransactionPageState extends State<AddTransactionPage>
               ),
             ),
 
-            // ─── Number pad ───
-            Container(
-              color: appStateSettings["materialYou"]
-                  ? Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3)
-                  : Theme.of(context).brightness == Brightness.light
-                      ? Colors.grey.shade100
-                      : getColor(context, "lightDarkAccentHeavyLight"),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SelectAmount(
-                      showEnteredNumber: false,
-                      hideNextButton: true,
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 0),
-                      walletPkForCurrency: selectedWalletPk,
-                      onlyShowCurrencyIcon: true,
-                      amountPassed: (selectedAmount ?? "0").toString(),
-                      setSelectedAmount: setSelectedAmount,
-                      extraWidgetAboveNumbers: null,
-                    ),
-                    // Bottom action row
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                          start: 8, end: 8, bottom: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 42,
-                              child: Tappable(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .secondaryContainer
-                                    .withOpacity(0.5),
-                                borderRadius: 10,
-                                onTap: () async {
-                                  if (selectedCategory != null && selectedAmount != null) {
-                                    bool result = await addTransaction();
-                                    if (result) {
-                                      setState(() {
-                                        selectedAmount = null;
-                                        selectedTitle = null;
-                                        _titleInputController.clear();
-                                        _noteInputController.clear();
-                                      });
-                                    }
-                                  }
-                                },
-                                child: Center(
-                                  child: TextFont(
-                                    text: "add-another".tr(),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: SizedBox(
-                              height: 42,
-                              child: AnimatedSwitcher(
-                                duration: Duration(milliseconds: 300),
-                                child: (selectedCategory != null && selectedAmount != null)
-                                    ? Tappable(
-                                        key: ValueKey("save"),
-                                        color: categoryColor,
-                                        borderRadius: 10,
-                                        onTap: () async {
-                                          bool result = await addTransaction();
-                                          if (result) popRoute(context);
-                                        },
-                                        child: Center(
-                                          child: TextFont(
-                                            text: widget.transaction != null
-                                                ? "save-changes".tr()
-                                                : textAddTransaction ?? "",
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            textColor: Colors.white,
-                                          ),
-                                        ),
-                                      )
-                                    : Tappable(
-                                        key: ValueKey("cancel"),
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer
-                                            .withOpacity(0.5),
-                                        borderRadius: 10,
-                                        onTap: () async {
-                                          if (widget.transaction != null) {
-                                            discardChangesPopup(
-                                              context,
-                                              previousObject:
-                                                  await addDefaultMissingValues(
-                                                      widget.transaction!),
-                                              currentObject: await createTransaction(),
-                                            );
-                                          } else {
-                                            showDiscardChangesPopupIfNotEditing();
-                                          }
-                                        },
-                                        child: Center(
-                                          child: TextFont(
-                                            text: "cancel".tr(),
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+            // ─── Number pad (image-2 layout) ───
+            SafeArea(
+              top: false,
+              child: SelectAmount(
+                showEnteredNumber: false,
+                hideNextButton: true,
+                padding: EdgeInsetsDirectional.symmetric(horizontal: 0),
+                walletPkForCurrency: selectedWalletPk,
+                onlyShowCurrencyIcon: true,
+                amountPassed: (selectedAmount ?? "0").toString(),
+                setSelectedAmount: setSelectedAmount,
+                extraWidgetAboveNumbers: null,
+                numberPadBuilder: ({
+                  required Function(String) addToAmount,
+                  required VoidCallback removeToAmount,
+                  required VoidCallback removeAll,
+                  required bool Function() canChange,
+                }) {
+                  return _CompactNumPad(
+                    addToAmount: addToAmount,
+                    removeToAmount: removeToAmount,
+                    removeAll: removeAll,
+                    canChange: canChange,
+                    categoryColor: categoryColor,
+                    onAddAnother: () async {
+                      if (selectedCategory != null && selectedAmount != null) {
+                        bool result = await addTransaction();
+                        if (result) {
+                          setState(() {
+                            selectedAmount = null;
+                            selectedTitle = null;
+                            _titleInputController.clear();
+                            _noteInputController.clear();
+                          });
+                        }
+                      }
+                    },
+                    onAdd: () async {
+                      bool result = await addTransaction();
+                      if (result) popRoute(context);
+                    },
+                    isEditing: widget.transaction != null,
+                  );
+                },
               ),
             ),
           ],
@@ -1826,16 +1761,20 @@ class _QuickTagChip extends StatelessWidget {
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 13,
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : getColor(context, "textLight"),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 1.5),
+                    child: Icon(icon, size: 14,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : getColor(context, "textLight"),
+                    ),
                   ),
-                  SizedBox(width: 3),
+                  SizedBox(width: 4),
                   TextFont(
                     text: label,
-                    fontSize: 11,
+                    fontSize: 12,
                     textColor: isSelected
                         ? Theme.of(context).colorScheme.primary
                         : getColor(context, "textLight"),
@@ -1845,6 +1784,212 @@ class _QuickTagChip extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CompactNumPad extends StatelessWidget {
+  const _CompactNumPad({
+    required this.addToAmount,
+    required this.removeToAmount,
+    required this.removeAll,
+    required this.canChange,
+    required this.categoryColor,
+    required this.onAddAnother,
+    required this.onAdd,
+    required this.isEditing,
+  });
+
+  final Function(String) addToAmount;
+  final VoidCallback removeToAmount;
+  final VoidCallback removeAll;
+  final bool Function() canChange;
+  final Color categoryColor;
+  final VoidCallback onAddAnother;
+  final VoidCallback onAdd;
+  final bool isEditing;
+
+  static const double _gap = 5.0;
+  static const double _rowH = 48.0;
+  static const double _radius = 8.0;
+
+  Widget _digitKey(BuildContext context, String label, {String? inputValue}) {
+    return Expanded(
+      child: Padding(
+        padding: EdgeInsets.all(_gap / 2),
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
+          borderRadius: BorderRadius.circular(_radius),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_radius),
+            onTap: canChange() ? () => addToAmount(inputValue ?? label) : null,
+            child: SizedBox(
+              height: _rowH,
+              child: Center(
+                child: TextFont(
+                  text: label,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _backspaceKey(BuildContext context) {
+    return Expanded(
+      child: Padding(
+        padding: EdgeInsets.all(_gap / 2),
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.55),
+          borderRadius: BorderRadius.circular(_radius),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_radius),
+            onTap: removeToAmount,
+            onLongPress: removeAll,
+            child: SizedBox(
+              height: _rowH,
+              child: Center(
+                child: Icon(
+                  appStateSettings["outlinedIcons"]
+                      ? Icons.backspace_outlined
+                      : Icons.backspace_rounded,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dualOpKey(BuildContext context, String op1, String op2) {
+    final bgColor = Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.55);
+    return Expanded(
+      child: Padding(
+        padding: EdgeInsets.all(_gap / 2),
+        child: Material(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(_radius),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            height: _rowH,
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => addToAmount(op1),
+                    child: Center(
+                      child: TextFont(
+                        text: op1,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 0.5,
+                  height: _rowH * 0.5,
+                  color: Theme.of(context).dividerColor.withOpacity(0.25),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => addToAmount(op2),
+                    child: Center(
+                      child: TextFont(
+                        text: op2,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionKey(BuildContext context, String label, VoidCallback onTap,
+      {Color? bgColor, Color? textColor}) {
+    return Expanded(
+      child: Padding(
+        padding: EdgeInsets.all(_gap / 2),
+        child: Material(
+          color: bgColor ??
+              Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.35),
+          borderRadius: BorderRadius.circular(_radius),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_radius),
+            onTap: onTap,
+            child: SizedBox(
+              height: _rowH,
+              child: Center(
+                child: TextFont(
+                  text: label,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  textColor: textColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxWidth: 420),
+      padding: EdgeInsets.symmetric(horizontal: _gap, vertical: _gap / 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row 1: 1 2 3 ⌫
+          Row(children: [
+            _digitKey(context, "1"),
+            _digitKey(context, "2"),
+            _digitKey(context, "3"),
+            _backspaceKey(context),
+          ]),
+          // Row 2: 4 5 6 [+ -]
+          Row(children: [
+            _digitKey(context, "4"),
+            _digitKey(context, "5"),
+            _digitKey(context, "6"),
+            _dualOpKey(context, "+", "-"),
+          ]),
+          // Row 3: 7 8 9 [× ÷]
+          Row(children: [
+            _digitKey(context, "7"),
+            _digitKey(context, "8"),
+            _digitKey(context, "9"),
+            _dualOpKey(context, "×", "÷"),
+          ]),
+          // Row 4: 再记 0 . 添加
+          Row(children: [
+            _actionKey(context, "再记", onAddAnother),
+            _digitKey(context, "0"),
+            _digitKey(context, getDecimalSeparator(), inputValue: "."),
+            _actionKey(
+              context,
+              isEditing ? "save-changes".tr() : "添加",
+              onAdd,
+              bgColor: categoryColor,
+              textColor: Colors.white,
+            ),
+          ]),
+        ],
       ),
     );
   }
@@ -4292,19 +4437,19 @@ Future<void> selectRecurrence(
     PopupFramework(
       title: "select-period".tr(),
       child: RadioItems(
-        items: ["Daily", "Weekly", "Monthly", "Yearly"],
+        items: ["Daily", "Workday", "Weekly", "Monthly", "Yearly"],
         initial: selectedRecurrence,
         displayFilter: (item) {
-          return item.toString().toLowerCase().tr();
+          return item.toString().toLowerCase().tr().capitalizeFirst;
         },
         onChanged: (value) {
           String selectedRecurrence = value;
           BudgetReoccurence selectedRecurrenceEnum = enumRecurrence[value];
           String selectedRecurrenceDisplay;
           if (selectedPeriodLength == 1) {
-            selectedRecurrenceDisplay = nameRecurrence[value].toString().tr();
+            selectedRecurrenceDisplay = nameRecurrence[value].toString();
           } else {
-            selectedRecurrenceDisplay = namesRecurrence[value].toString().tr();
+            selectedRecurrenceDisplay = namesRecurrence[value].toString();
           }
           onChanged(selectedRecurrence, selectedRecurrenceEnum,
               selectedRecurrenceDisplay);

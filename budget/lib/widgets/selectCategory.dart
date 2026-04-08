@@ -179,7 +179,7 @@ class _SelectCategoryState extends State<SelectCategory> {
                       sizePadding: 16,
                       correctionEmojiPaddingBottom: 3,
                       margin: EdgeInsetsDirectional.only(
-                          start: 4, end: 4, top: 4, bottom: 2),
+                          start: 12, end: 12, top: 4, bottom: 2),
                       labelSize: 9,
                       label: widget.labelIcon,
                       onTap: () {

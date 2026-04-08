@@ -71,11 +71,13 @@ dynamic namesRecurrence = {
   "Weekly": "weeks",
   "Monthly": "months",
   "Yearly": "years",
+  "Workday": "workdays",
   BudgetReoccurence.custom: "custom",
   BudgetReoccurence.daily: "days",
   BudgetReoccurence.weekly: "weeks",
   BudgetReoccurence.monthly: "months",
   BudgetReoccurence.yearly: "years",
+  BudgetReoccurence.workday: "workdays",
 };
 
 dynamic nameRecurrence = {
@@ -84,11 +86,13 @@ dynamic nameRecurrence = {
   "Weekly": "week",
   "Monthly": "month",
   "Yearly": "year",
+  "Workday": "workday",
   BudgetReoccurence.custom: "custom",
   BudgetReoccurence.daily: "day",
   BudgetReoccurence.weekly: "week",
   BudgetReoccurence.monthly: "month",
   BudgetReoccurence.yearly: "year",
+  BudgetReoccurence.workday: "workday",
 };
 
 dynamic enumRecurrence = {
@@ -97,11 +101,13 @@ dynamic enumRecurrence = {
   "Weekly": BudgetReoccurence.weekly,
   "Monthly": BudgetReoccurence.monthly,
   "Yearly": BudgetReoccurence.yearly,
+  "Workday": BudgetReoccurence.workday,
   BudgetReoccurence.custom: "Custom",
   BudgetReoccurence.daily: "Daily",
   BudgetReoccurence.weekly: "Weekly",
   BudgetReoccurence.monthly: "Monthly",
   BudgetReoccurence.yearly: "Yearly",
+  BudgetReoccurence.workday: "Workday",
 };
 
 class _AddBudgetPageState extends State<AddBudgetPage> {

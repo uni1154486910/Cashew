@@ -46,6 +46,18 @@ Future createNewSubscriptionTransaction(
         transaction.dateCreated.millisecond,
       );
 
+      if (transaction.reoccurrence == BudgetReoccurence.workday) {
+        int workdaysToAdd = transaction.periodLength ?? 1;
+        newDate = transaction.dateCreated;
+        while (workdaysToAdd > 0) {
+          newDate = newDate.add(Duration(days: 1));
+          if (newDate.weekday != DateTime.saturday &&
+              newDate.weekday != DateTime.sunday) {
+            workdaysToAdd--;
+          }
+        }
+      }
+
       // After end date
       if (transaction.endDate != null &&
           transaction.endDate!.isBefore(newDate)) {
@@ -169,15 +181,26 @@ int? countTransactionOccurrences({
   while (!endDate.isBefore(currentDate)) {
     occurrenceCount++;
 
-    currentDate = DateTime(
-      currentDate.year + yearOffset,
-      currentDate.month + monthOffset,
-      currentDate.day + dayOffset,
-      currentDate.hour,
-      currentDate.minute,
-      currentDate.second,
-      currentDate.millisecond,
-    );
+    if (reoccurrence == BudgetReoccurence.workday) {
+      int workdaysToAdd = periodLength;
+      while (workdaysToAdd > 0) {
+        currentDate = currentDate.add(Duration(days: 1));
+        if (currentDate.weekday != DateTime.saturday &&
+            currentDate.weekday != DateTime.sunday) {
+          workdaysToAdd--;
+        }
+      }
+    } else {
+      currentDate = DateTime(
+        currentDate.year + yearOffset,
+        currentDate.month + monthOffset,
+        currentDate.day + dayOffset,
+        currentDate.hour,
+        currentDate.minute,
+        currentDate.second,
+        currentDate.millisecond,
+      );
+    }
 
     if (endDate.isBefore(currentDate)) {
       break;
