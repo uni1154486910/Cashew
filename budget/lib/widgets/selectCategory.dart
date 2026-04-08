@@ -1,6 +1,7 @@
 import 'package:budget/colors.dart';
 import 'package:budget/database/tables.dart';
 import 'package:budget/functions.dart';
+import 'package:budget/pages/addButton.dart';
 import 'package:budget/pages/addCategoryPage.dart';
 import 'package:budget/struct/databaseGlobal.dart';
 import 'package:budget/struct/settings.dart';
@@ -16,8 +17,6 @@ import 'package:flutter/material.dart'
     hide SliverReorderableList, ReorderableDelayedDragStartListener;
 import 'package:flutter/services.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
-
-import 'package:budget/pages/addButton.dart';
 
 class SelectCategory extends StatefulWidget {
   SelectCategory({
@@ -176,11 +175,11 @@ class _SelectCategoryState extends State<SelectCategory> {
                     child: CategoryIcon(
                       enableTooltip: category.name.length > 10,
                       categoryPk: category.categoryPk,
-                      size: 35,
-                      sizePadding: 20,
-                      margin: EdgeInsetsDirectional.only(
-                          start: 5, end: 5, top: 4, bottom: 1),
+                      size: 30,
+                      sizePadding: 16,
                       correctionEmojiPaddingBottom: 3,
+                      margin: EdgeInsetsDirectional.only(
+                          start: 4, end: 4, top: 4, bottom: 2),
                       labelSize: 9,
                       label: widget.labelIcon,
                       onTap: () {
@@ -260,13 +259,13 @@ class _SelectCategoryState extends State<SelectCategory> {
                           : Padding(
                               key: ValueKey(2),
                               padding: const EdgeInsetsDirectional.only(
-                                bottom: 1,
-                                top: 4,
+                                bottom: 21,
+                                top: 8,
                               ),
                               child: AddButton(
                                 onTap: () {},
                                 margin: EdgeInsetsDirectional.symmetric(
-                                    horizontal: 5),
+                                    horizontal: 7),
                                 openPage: AddCategoryPage(
                                     routesToPopAfterDelete:
                                         RoutesToPopAfterDelete.None,
@@ -274,9 +273,7 @@ class _SelectCategoryState extends State<SelectCategory> {
                                         widget.mainCategoryPks?[0],
                                     initiallyIsExpense:
                                         widget.selectedIncome != true),
-                                width: 55,
-                                height: 55,
-                                labelUnder: "+",
+                                width: 70,
                               ),
                             ),
                     ],
