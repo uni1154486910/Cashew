@@ -30,7 +30,7 @@ subprojects {
 }
 
 subprojects { subproject ->
-    subproject.afterEvaluate {
+    def configureNamespace = {
         def androidExt = subproject.extensions.findByName("android")
         if (androidExt != null && androidExt.hasProperty("namespace") && !androidExt.namespace) {
             def manifestFile = androidExt.sourceSets?.main?.manifest?.srcFile
@@ -42,6 +42,11 @@ subprojects { subproject ->
                 }
             }
         }
+    }
+    try {
+        subproject.afterEvaluate { configureNamespace() }
+    } catch (IllegalStateException ignored) {
+        configureNamespace()
     }
 }
 
