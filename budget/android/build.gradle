@@ -57,10 +57,6 @@ subprojects { subproject ->
                     }
                 }
             }
-            if (androidExt.hasProperty("compileOptions")) {
-                androidExt.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
-                androidExt.compileOptions.targetCompatibility = JavaVersion.VERSION_17
-            }
         }
     }
     if (subproject.state.executed) {
