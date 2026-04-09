@@ -43,10 +43,10 @@ subprojects { subproject ->
             }
         }
     }
-    try {
-        subproject.afterEvaluate { configureNamespace() }
-    } catch (IllegalStateException ignored) {
+    if (subproject.state.executed) {
         configureNamespace()
+    } else {
+        subproject.afterEvaluate { configureNamespace() }
     }
 }
 
