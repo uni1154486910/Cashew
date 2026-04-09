@@ -28,11 +28,13 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(':app')
 
-    // Keep Java/Kotlin targets consistent across plugins to avoid
-    // "Inconsistent JVM-target compatibility" errors on CI.
-    tasks.withType(JavaCompile).configureEach {
-        sourceCompatibility = JavaVersion.VERSION_17.toString()
-        targetCompatibility = JavaVersion.VERSION_17.toString()
+    // Force all modules/plugins to Java 17 and Kotlin JVM target 17.
+    tasks.matching { it.name.startsWith("compile") && it.name.endsWith("JavaWithJavac") }
+            .configureEach { javaTask ->
+        if (javaTask instanceof JavaCompile) {
+            javaTask.sourceCompatibility = JavaVersion.VERSION_17.toString()
+            javaTask.targetCompatibility = JavaVersion.VERSION_17.toString()
+        }
     }
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
@@ -54,6 +56,10 @@ subprojects { subproject ->
                         androidExt.namespace = manifestPackage
                     }
                 }
+            }
+            if (androidExt.hasProperty("compileOptions")) {
+                androidExt.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+                androidExt.compileOptions.targetCompatibility = JavaVersion.VERSION_17
             }
         }
     }
