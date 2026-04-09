@@ -27,20 +27,6 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(':app')
-
-    // Force all modules/plugins to Java 17 and Kotlin JVM target 17.
-    tasks.matching { it.name.startsWith("compile") && it.name.endsWith("JavaWithJavac") }
-            .configureEach { javaTask ->
-        if (javaTask instanceof JavaCompile) {
-            javaTask.sourceCompatibility = JavaVersion.VERSION_17.toString()
-            javaTask.targetCompatibility = JavaVersion.VERSION_17.toString()
-        }
-    }
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
-        }
-    }
 }
 
 subprojects { subproject ->
@@ -63,6 +49,23 @@ subprojects { subproject ->
         configureSubproject()
     } else {
         subproject.afterEvaluate { configureSubproject() }
+    }
+}
+
+// Align Kotlin compile JVM target to the paired Java compile task target
+// after all projects/tasks are created. This avoids finalized extension
+// property issues and fixes mixed plugin defaults (1.8 vs 17).
+gradle.projectsEvaluated {
+    subprojects { subproject ->
+        subproject.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { ktTask ->
+            def javaTaskName = ktTask.name.replace("Kotlin", "JavaWithJavac")
+            def javaTask = subproject.tasks.findByName(javaTaskName)
+            if (javaTask instanceof JavaCompile) {
+                ktTask.kotlinOptions {
+                    jvmTarget = javaTask.targetCompatibility
+                }
+            }
+        }
     }
 }
 
