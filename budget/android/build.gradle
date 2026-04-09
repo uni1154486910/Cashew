@@ -27,6 +27,18 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.evaluationDependsOn(':app')
+
+    // Keep Java/Kotlin targets consistent across plugins to avoid
+    // "Inconsistent JVM-target compatibility" errors on CI.
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+    }
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
 }
 
 subprojects { subproject ->
@@ -41,12 +53,6 @@ subprojects { subproject ->
                     if (manifestPackage) {
                         androidExt.namespace = manifestPackage
                     }
-                }
-            }
-            def javaTarget = androidExt.compileOptions.targetCompatibility.toString()
-            subproject.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                kotlinOptions {
-                    jvmTarget = javaTarget
                 }
             }
         }
