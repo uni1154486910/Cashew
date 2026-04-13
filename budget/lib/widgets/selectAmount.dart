@@ -325,7 +325,19 @@ class _SelectAmountState extends State<SelectAmount> {
                 includesOperations(input, true)) ||
         !includesOperations(input, true)) {
       setState(() {
-        amount += input;
+        final bool inputIsBasicOperator = isBasicOperator(input);
+        final bool amountHasExpression = containsBasicOperator(amount);
+        final bool canCollapseExpression = inputIsBasicOperator &&
+            amountHasExpression &&
+            !includesOperations(amount.substring(amount.length - 1), true) &&
+            amount != "-";
+
+        if (canCollapseExpression) {
+          final double collapsedResult = calculateResultSequential(amount);
+          amount = removeTrailingZeroes(collapsedResult.toString()) + input;
+        } else {
+          amount += input;
+        }
       });
     } else if (amount.length != 0 &&
         includesOperations(amount.substring(amount.length - 1), false) &&
@@ -382,6 +394,9 @@ class _SelectAmountState extends State<SelectAmount> {
   }
 
   void removeAll() {
+    if (appStateSettings["numberPadHapticFeedback"] == true) {
+      HapticFeedback.mediumImpact();
+    }
     setState(() {
       amount = "";
     });
@@ -411,6 +426,17 @@ class _SelectAmountState extends State<SelectAmount> {
       }
     }
     return false;
+  }
+
+  bool isBasicOperator(String input) {
+    return input == "÷" || input == "×" || input == "-" || input == "+";
+  }
+
+  bool containsBasicOperator(String input) {
+    return input.contains("÷") ||
+        input.contains("×") ||
+        input.contains("+") ||
+        (input.substring(1).contains("-"));
   }
 
   bool onlyOneOperationAndIsNegativeSign(String amount) {
@@ -475,6 +501,58 @@ class _SelectAmountState extends State<SelectAmount> {
     }
     if (onlyOneOperationAndIsNegativeSign(amount) && result == 0) {
       return -0;
+    }
+    return result;
+  }
+
+  double calculateResultSequential(String input) {
+    if (input.isEmpty) return 0;
+
+    String changedInput = input;
+    if (includesOperations(changedInput.substring(changedInput.length - 1), true)) {
+      changedInput = changedInput.substring(0, changedInput.length - 1);
+    }
+    if (changedInput.isEmpty || changedInput == "-") return 0;
+
+    final List<String> tokens = [];
+    String current = "";
+    for (int i = 0; i < changedInput.length; i++) {
+      final String char = changedInput[i];
+      final bool unaryNegative = char == "-" && i == 0;
+      if (isBasicOperator(char) && !unaryNegative) {
+        tokens.add(current);
+        tokens.add(char);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    if (current.isNotEmpty) {
+      tokens.add(current);
+    }
+    if (tokens.isEmpty) return 0;
+
+    double result = double.tryParse(tokens.first) ?? 0;
+    for (int i = 1; i < tokens.length - 1; i += 2) {
+      final String op = tokens[i];
+      final double nextValue = double.tryParse(tokens[i + 1]) ?? 0;
+      switch (op) {
+        case "+":
+          result += nextValue;
+          break;
+        case "-":
+          result -= nextValue;
+          break;
+        case "×":
+          result *= nextValue;
+          break;
+        case "÷":
+          if (nextValue == 0) {
+            return 0;
+          }
+          result /= nextValue;
+          break;
+      }
     }
     return result;
   }

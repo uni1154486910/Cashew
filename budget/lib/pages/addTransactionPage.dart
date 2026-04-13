@@ -1699,19 +1699,6 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                     removeAll: removeAll,
                     canChange: canChange,
                     categoryColor: categoryColor,
-                    onAddAnother: () async {
-                      if (selectedCategory != null && selectedAmount != null) {
-                        bool result = await addTransaction();
-                        if (result) {
-                          setState(() {
-                            selectedAmount = null;
-                            selectedTitle = null;
-                            _titleInputController.clear();
-                            _noteInputController.clear();
-                          });
-                        }
-                      }
-                    },
                     onAdd: () async {
                       bool result = await addTransaction();
                       if (result) popRoute(context);
@@ -1796,7 +1783,6 @@ class _CompactNumPad extends StatelessWidget {
     required this.removeAll,
     required this.canChange,
     required this.categoryColor,
-    required this.onAddAnother,
     required this.onAdd,
     required this.isEditing,
   });
@@ -1806,7 +1792,6 @@ class _CompactNumPad extends StatelessWidget {
   final VoidCallback removeAll;
   final bool Function() canChange;
   final Color categoryColor;
-  final VoidCallback onAddAnother;
   final VoidCallback onAdd;
   final bool isEditing;
 
@@ -1929,7 +1914,12 @@ class _CompactNumPad extends StatelessWidget {
           borderRadius: BorderRadius.circular(_radius),
           child: InkWell(
             borderRadius: BorderRadius.circular(_radius),
-            onTap: onTap,
+            onTap: () {
+              if (appStateSettings["numberPadHapticFeedback"] == true) {
+                HapticFeedback.selectionClick();
+              }
+              onTap();
+            },
             child: SizedBox(
               height: _rowH,
               child: Center(
@@ -1976,9 +1966,9 @@ class _CompactNumPad extends StatelessWidget {
             _digitKey(context, "9"),
             _dualOpKey(context, "×", "÷"),
           ]),
-          // Row 4: 再记 0 . 添加
+          // Row 4: 清零 0 . 添加
           Row(children: [
-            _actionKey(context, "再记", onAddAnother),
+            _actionKey(context, "清零", removeAll),
             _digitKey(context, "0"),
             _digitKey(context, getDecimalSeparator(), inputValue: "."),
             _actionKey(
