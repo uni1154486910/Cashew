@@ -124,6 +124,8 @@ Future<Map<String, dynamic>> getDefaultPreferences() async {
     "hasOnboarded": false,
     "restrictAmountOfInitiallyLoadedTransactions": false,
     "autoAddAssociatedTitles": true,
+    // key: categoryPk, value: List<String> common words for quick parsing
+    "categoryCommonWords": {},
     "AutoTransactions-canReadEmails": false,
     "notificationScanningDebug": false,
     "notificationScanning": false,

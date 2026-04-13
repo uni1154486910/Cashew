@@ -941,6 +941,55 @@ class _AddCategoryPageState extends State<AddCategoryPage>
                     padding:
                         const EdgeInsetsDirectional.symmetric(horizontal: 20),
                     child: TextFont(
+                      text:
+                          categoryCommonWordsDisplayText("common-words", "常用词"),
+                      textColor: getColor(context, "textLight"),
+                      fontSize: 16,
+                    ),
+                  ),
+                if (widget.category != null) SizedBox(height: 5),
+                if (widget.category != null)
+                  Padding(
+                    padding:
+                        const EdgeInsetsDirectional.symmetric(horizontal: 20),
+                    child: TextFont(
+                      text: categoryCommonWordsDisplayText(
+                          "common-words-description", "用于文本解析归类到该分类的词语或短语"),
+                      textColor: getColor(context, "textLight"),
+                      fontSize: 13,
+                      maxLines: 10,
+                    ),
+                  ),
+                if (widget.category != null) SizedBox(height: 10),
+                if (widget.category != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AddButton(
+                          margin: EdgeInsetsDirectional.only(
+                            start: 15,
+                            end: 15,
+                            bottom: 9,
+                            top: 4,
+                          ),
+                          onTap: () {
+                            openBottomSheet(
+                              context,
+                              CategoryCommonWordsPopup(
+                                category: widget.category!,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                if (widget.category != null) SizedBox(height: 14),
+                if (widget.category != null)
+                  Padding(
+                    padding:
+                        const EdgeInsetsDirectional.symmetric(horizontal: 20),
+                    child: TextFont(
                       text: "associated-titles".tr(),
                       textColor: getColor(context, "textLight"),
                       fontSize: 16,
@@ -1039,6 +1088,244 @@ class _AddCategoryPageState extends State<AddCategoryPage>
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+List<String> getCategoryCommonWords(String categoryPk) {
+  final dynamic rawSettingsMap = appStateSettings["categoryCommonWords"];
+  if (rawSettingsMap is! Map) return [];
+  final dynamic rawWords = rawSettingsMap[categoryPk];
+  if (rawWords is! List) return [];
+  return rawWords
+      .map((word) => word.toString().trim())
+      .where((word) => word.isNotEmpty)
+      .toList();
+}
+
+Future<void> saveCategoryCommonWords(
+    String categoryPk, List<String> words) async {
+  final Map<String, dynamic> settingsMap = {};
+  final dynamic rawSettingsMap = appStateSettings["categoryCommonWords"];
+  if (rawSettingsMap is Map) {
+    rawSettingsMap.forEach((key, value) {
+      settingsMap[key.toString()] = value;
+    });
+  }
+
+  final List<String> cleanedWords = [];
+  final Set<String> loweredWords = {};
+  for (final String word in words) {
+    final String cleaned = word.trim();
+    if (cleaned.isEmpty) continue;
+    if (loweredWords.add(cleaned.toLowerCase())) {
+      cleanedWords.add(cleaned);
+    }
+  }
+
+  settingsMap[categoryPk] = cleanedWords;
+  await updateSettings(
+    "categoryCommonWords",
+    settingsMap,
+    updateGlobalState: false,
+  );
+}
+
+String categoryCommonWordsDisplayText(String key, String fallback) {
+  final String translated = key.tr();
+  return translated == key ? fallback : translated;
+}
+
+class CategoryCommonWordsPopup extends StatefulWidget {
+  const CategoryCommonWordsPopup({
+    required this.category,
+    super.key,
+  });
+
+  final TransactionCategory category;
+
+  @override
+  State<CategoryCommonWordsPopup> createState() => _CategoryCommonWordsPopupState();
+}
+
+class _CategoryCommonWordsPopupState extends State<CategoryCommonWordsPopup> {
+  late List<String> words;
+
+  @override
+  void initState() {
+    super.initState();
+    words = getCategoryCommonWords(widget.category.categoryPk);
+  }
+
+  Future<void> _save() async {
+    await saveCategoryCommonWords(widget.category.categoryPk, words);
+    setState(() {
+      words = getCategoryCommonWords(widget.category.categoryPk);
+    });
+  }
+
+  Future<void> _showSetWordPopup({String initialValue = "", int? index}) async {
+    openBottomSheet(
+      context,
+      popupWithKeyboard: true,
+      PopupFramework(
+        title: categoryCommonWordsDisplayText("set-common-word", "设置常用词"),
+        child: SelectText(
+          buttonLabel:
+              categoryCommonWordsDisplayText("set-common-word", "设置常用词"),
+          setSelectedText: (_) {},
+          labelText:
+              categoryCommonWordsDisplayText("set-common-word", "设置常用词"),
+          selectedText: initialValue,
+          placeholder: categoryCommonWordsDisplayText(
+              "common-word-placeholder", "例如：早餐、咖啡、打车"),
+          nextWithInput: (text) async {
+            final String value = text.trim();
+            if (value.isEmpty) return;
+            setState(() {
+              if (index == null) {
+                words.add(value);
+              } else {
+                words[index] = value;
+              }
+            });
+            await _save();
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final double availableHeight = mediaQuery.size.height -
+        mediaQuery.padding.top -
+        mediaQuery.padding.bottom -
+        mediaQuery.viewInsets.bottom;
+    final double maxContentHeight = (availableHeight * 0.5).clamp(220.0, 420.0);
+    return PopupFramework(
+      title: categoryCommonWordsDisplayText("common-words", "常用词"),
+      subtitle: categoryCommonWordsDisplayText(
+          "common-words-description", "用于文本解析归类到该分类的词语或短语"),
+      child: SizedBox(
+        height: maxContentHeight,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: AddButton(
+                    margin: EdgeInsetsDirectional.only(
+                      start: 15,
+                      end: 15,
+                      bottom: 9,
+                      top: 4,
+                    ),
+                    onTap: () {
+                      _showSetWordPopup();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: words.isEmpty
+                  ? Padding(
+                      padding:
+                          const EdgeInsetsDirectional.fromSTEB(20, 8, 20, 14),
+                      child: TextFont(
+                        text: categoryCommonWordsDisplayText(
+                            "no-common-words", "暂无常用词"),
+                        textColor: getColor(context, "textLight"),
+                        fontSize: 14,
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: words.length,
+                      padding: const EdgeInsetsDirectional.only(bottom: 20),
+                      itemBuilder: (context, index) {
+                        return CommonWordContainer(
+                          word: words[index],
+                          onEdit: () {
+                            _showSetWordPopup(
+                                initialValue: words[index], index: index);
+                          },
+                          onDelete: () async {
+                            setState(() {
+                              words.removeAt(index);
+                            });
+                            await _save();
+                          },
+                        );
+                      },
+                    ),
+            ),
+            SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CommonWordContainer extends StatelessWidget {
+  const CommonWordContainer({
+    required this.word,
+    required this.onEdit,
+    required this.onDelete,
+    super.key,
+  });
+
+  final String word;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color backgroundColor = appStateSettings["materialYou"]
+        ? dynamicPastel(
+            context, Theme.of(context).colorScheme.secondaryContainer,
+            amountLight: 0, amountDark: 0.6)
+        : getColor(context, "lightDarkAccent");
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 15, end: 15, bottom: 8),
+      child: Tappable(
+        onTap: onEdit,
+        borderRadius: 15,
+        color: backgroundColor,
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: 25, vertical: 15),
+                child: TextFont(
+                  text: word,
+                  fontSize: 16.5,
+                ),
+              ),
+            ),
+            Tappable(
+              onTap: onDelete,
+              borderRadius: 15,
+              color: backgroundColor,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.all(14),
+                child: Icon(
+                  appStateSettings["outlinedIcons"]
+                      ? Icons.close_outlined
+                      : Icons.close_rounded,
+                  size: 25,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
