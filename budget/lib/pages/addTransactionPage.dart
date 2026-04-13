@@ -106,6 +106,7 @@ class AddTransactionPage extends StatefulWidget {
     this.selectedNotes,
     this.startInitialAddTransactionSequence = true,
     this.transferBalancePopup = false,
+    this.autoFocusNoteOnOpen = true,
     required this.routesToPopAfterDelete,
   }) : super(key: key);
 
@@ -126,6 +127,7 @@ class AddTransactionPage extends StatefulWidget {
   final String? selectedNotes;
   final bool startInitialAddTransactionSequence;
   final bool transferBalancePopup;
+  final bool autoFocusNoteOnOpen;
 
   @override
   _AddTransactionPageState createState() => _AddTransactionPageState();
@@ -1208,6 +1210,14 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
   late TextEditingController _titleInputController;
   late TextEditingController _noteInputController;
+  late FocusNode _noteInputFocusNode;
+
+  void _focusNoteInput() {
+    if (!mounted) return;
+    if (!_noteInputFocusNode.hasFocus) {
+      _noteInputFocusNode.requestFocus();
+    }
+  }
 
   @override
   void initState() {
@@ -1219,6 +1229,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           new TextEditingController(text: widget.transaction!.name);
       _noteInputController =
           new LinkHighlighter(initialText: widget.transaction!.note);
+      _noteInputFocusNode = FocusNode();
       selectedTitle = widget.transaction!.name;
       selectedDate = widget.transaction!.dateCreated;
       selectedEndDate = widget.transaction!.endDate;
@@ -1260,6 +1271,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
 
       _titleInputController = new TextEditingController();
       _noteInputController = new LinkHighlighter();
+      _noteInputFocusNode = FocusNode();
 
       Future.delayed(Duration(milliseconds: 0), () async {
         if (widget.transferBalancePopup) {
@@ -1275,6 +1287,11 @@ class _AddTransactionPageState extends State<AddTransactionPage>
           if (categories.isNotEmpty) {
             setSelectedCategory(categories.first);
           }
+        }
+
+        // Auto focus note input when opening from add button.
+        if (widget.autoFocusNoteOnOpen) {
+          Future.delayed(const Duration(milliseconds: 120), _focusNoteInput);
         }
       });
     }
@@ -1923,6 +1940,9 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                   Expanded(
                     child: TextField(
                       controller: _noteInputController,
+                      focusNode: _noteInputFocusNode,
+                      autofocus:
+                          widget.transaction == null && widget.autoFocusNoteOnOpen,
                       style: TextStyle(fontSize: 13, height: 1.2),
                       decoration: InputDecoration(
                         hintText: "notes-placeholder".tr(),
@@ -2204,6 +2224,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   @override
   void dispose() {
     _noteAutoParseTimer?.cancel();
+    _noteInputFocusNode.dispose();
     _titleInputController.dispose();
     _noteInputController.dispose();
     super.dispose();

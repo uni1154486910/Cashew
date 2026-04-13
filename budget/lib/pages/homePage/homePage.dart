@@ -687,6 +687,7 @@ class _PullDownToAddTransactionState extends State<_PullDownToAddTransaction>
         pageBuilder: (context, animation, secondaryAnimation) {
           return AddTransactionPage(
             routesToPopAfterDelete: RoutesToPopAfterDelete.None,
+            autoFocusNoteOnOpen: false,
           );
         },
       ),
