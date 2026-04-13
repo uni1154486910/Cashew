@@ -133,6 +133,83 @@ class AddTransactionPage extends StatefulWidget {
 
 class _AddTransactionPageState extends State<AddTransactionPage>
     with SingleTickerProviderStateMixin {
+  static const List<String> _defaultDiningCommonWords = [
+    "早餐",
+    "早饭",
+    "午餐",
+    "午饭",
+    "晚餐",
+    "晚饭",
+    "宵夜",
+    "夜宵",
+    "外卖",
+    "吃饭",
+    "餐费",
+    "饭钱",
+    "咖啡",
+    "奶茶",
+  ];
+
+  static const List<String> _defaultTransitCommonWords = [
+    "交通",
+    "地铁",
+    "公交",
+    "打车",
+    "出租车",
+    "滴滴",
+    "车费",
+    "路费",
+    "高铁",
+    "火车",
+    "巴士",
+    "通勤",
+    "过路费",
+    "停车费",
+  ];
+
+  static const List<String> _oldDefaultEntertainmentNames = [
+    "娱乐",
+    "娛樂",
+    "Entertainment",
+  ];
+
+  static const List<String> _quantityMeasureWords = [
+    "斤",
+    "个",
+    "杯",
+    "瓶",
+    "包",
+    "袋",
+    "盒",
+    "份",
+    "碗",
+    "盘",
+    "只",
+    "件",
+    "张",
+    "台",
+    "次",
+    "公里",
+    "km",
+    "千克",
+    "克",
+    "kg",
+    "g",
+    "升",
+    "毫升",
+    "ml",
+    "l",
+    "人",
+    "天",
+    "小时",
+    "分钟",
+  ];
+
+  Timer? _noteAutoParseTimer;
+  bool _didFallbackToDailyByAutoParse = false;
+  String? _autoParsedFallbackKeyword;
+  String? _autoParsedFallbackDailyCategoryPk;
+  String? _manualOverrideCategoryPkAfterFallback;
   TransactionCategory? selectedCategory;
   TransactionCategory? selectedSubCategory;
   double? selectedAmount;
@@ -187,13 +264,20 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   }
 
   void setSelectedCategory(TransactionCategory category,
-      {bool setIncome = true}) {
+      {bool setIncome = true, bool fromAutoParse = false}) {
     if (isAddedToLoanObjective == false &&
         setIncome &&
         category.categoryPk != "0" &&
         selectedType != TransactionSpecialType.credit &&
         selectedType != TransactionSpecialType.debt) {
       setSelectedIncome(category.income);
+    }
+    if (!fromAutoParse &&
+        _didFallbackToDailyByAutoParse &&
+        _autoParsedFallbackDailyCategoryPk != null &&
+        _autoParsedFallbackKeyword != null &&
+        category.categoryPk != _autoParsedFallbackDailyCategoryPk) {
+      _manualOverrideCategoryPkAfterFallback = category.categoryPk;
     }
     setState(() {
       if (selectedCategory != category) selectedSubCategory = null;
@@ -248,6 +332,405 @@ class _AddTransactionPageState extends State<AddTransactionPage>
   void setSelectedNoteController(String note, {bool setInput = true}) {
     if (setInput) setTextInput(_noteInputController, note);
     return;
+  }
+
+  Future<void> _ensureDefaultCategoryCommonWordsSeeded() async {
+    final Map<String, dynamic> categoryWordsMap = {};
+    final dynamic rawWordsMap = appStateSettings["categoryCommonWords"];
+    if (rawWordsMap is Map) {
+      rawWordsMap.forEach((key, value) {
+        categoryWordsMap[key.toString()] = value;
+      });
+    }
+
+    bool changed = false;
+    changed = _mergeDefaultCommonWords(
+            categoryWordsMap, "1", _defaultDiningCommonWords) ||
+        changed;
+    changed = _mergeDefaultCommonWords(
+            categoryWordsMap, "4", _defaultTransitCommonWords) ||
+        changed;
+
+    if (changed) {
+      await updateSettings(
+        "categoryCommonWords",
+        categoryWordsMap,
+        updateGlobalState: false,
+      );
+    }
+
+    await _ensureDailyCategoryName();
+  }
+
+  Future<void> _ensureDailyCategoryName() async {
+    try {
+      final TransactionCategory? dailyCategory =
+          await database.getCategoryInstanceOrNull("5");
+      if (dailyCategory == null) return;
+      if (_oldDefaultEntertainmentNames.contains(dailyCategory.name)) {
+        await database.createOrUpdateCategory(
+          dailyCategory.copyWith(
+            name: "default-category-entertainment".tr(),
+            dateTimeModified: Value(DateTime.now()),
+          ),
+          insert: false,
+        );
+      }
+    } catch (_) {}
+  }
+
+  bool _mergeDefaultCommonWords(
+      Map<String, dynamic> targetMap, String categoryPk, List<String> defaults) {
+    final dynamic rawCurrent = targetMap[categoryPk];
+    final List<String> current = rawCurrent is List
+        ? rawCurrent
+            .map((word) => word.toString().trim())
+            .where((word) => word.isNotEmpty)
+            .toList()
+        : [];
+    final Set<String> existingLowered =
+        current.map((word) => word.toLowerCase()).toSet();
+
+    bool changed = false;
+    for (final String word in defaults) {
+      final String cleaned = word.trim();
+      if (cleaned.isEmpty) continue;
+      if (existingLowered.add(cleaned.toLowerCase())) {
+        current.add(cleaned);
+        changed = true;
+      }
+    }
+    targetMap[categoryPk] = current;
+    return changed;
+  }
+
+  void _scheduleNoteAutoFill(String note) {
+    _noteAutoParseTimer?.cancel();
+    _noteAutoParseTimer = Timer(const Duration(milliseconds: 700), () {
+      _autoFillCategoryAndAmountFromNote(note);
+    });
+  }
+
+  Future<void> _autoFillCategoryAndAmountFromNote(String note) async {
+    final String text = note.trim();
+    if (text.isEmpty || !mounted) return;
+
+    final List<TransactionCategory> categories = await database.getAllCategories();
+    if (!mounted || categories.isEmpty) return;
+
+    final TransactionCategory? matchedCategory =
+        _matchCategoryByCommonWords(text, categories);
+    if (matchedCategory != null) {
+      _didFallbackToDailyByAutoParse = false;
+      _autoParsedFallbackKeyword = null;
+      _autoParsedFallbackDailyCategoryPk = null;
+      _manualOverrideCategoryPkAfterFallback = null;
+      if (selectedCategory?.categoryPk != matchedCategory.categoryPk) {
+        if (appStateSettings["numberPadHapticFeedback"] == true) {
+          HapticFeedback.selectionClick();
+        }
+        setSelectedCategory(matchedCategory, fromAutoParse: true);
+      }
+    } else {
+      TransactionCategory? dailyCategory;
+      for (final category in categories) {
+        if (category.categoryPk == "5") {
+          dailyCategory = category;
+          break;
+        }
+      }
+      if (dailyCategory != null) {
+        _didFallbackToDailyByAutoParse = true;
+        _autoParsedFallbackDailyCategoryPk = dailyCategory.categoryPk;
+        _manualOverrideCategoryPkAfterFallback = null;
+        _autoParsedFallbackKeyword = _extractLikelyKeyword(text);
+        if (selectedCategory?.categoryPk != dailyCategory.categoryPk) {
+          if (appStateSettings["numberPadHapticFeedback"] == true) {
+            HapticFeedback.selectionClick();
+          }
+          setSelectedCategory(dailyCategory, fromAutoParse: true);
+        }
+      }
+    }
+
+    final double? matchedAmount = _extractAmountFromText(text);
+    if (matchedAmount != null && matchedAmount >= 0) {
+      setSelectedAmount(
+        matchedAmount,
+        removeTrailingZeroes(matchedAmount.toString()),
+      );
+    }
+  }
+
+  String? _extractLikelyKeyword(String text) {
+    String cleaned = _normalizeAmountText(text).toLowerCase();
+    cleaned = cleaned.replaceAll(
+      RegExp(
+          r'[0-9零〇一二两三四五六七八九十百千万点\.]+\s*(块钱|块|元|毛|角|分)?'),
+      ' ',
+    );
+
+    for (final String unit in _quantityMeasureWords) {
+      cleaned = cleaned.replaceAll(unit.toLowerCase(), ' ');
+    }
+    cleaned = cleaned
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'[^\u4e00-\u9fa5a-zA-Z ]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    if (cleaned.isEmpty) return null;
+    final List<String> tokens =
+        cleaned.split(' ').where((token) => token.trim().isNotEmpty).toList();
+    if (tokens.isEmpty) return null;
+    tokens.sort((a, b) => b.length.compareTo(a.length));
+    return tokens.first.trim();
+  }
+
+  Future<void> _learnCommonWordAfterManualOverrideIfNeeded() async {
+    if (!_didFallbackToDailyByAutoParse) return;
+    if (_autoParsedFallbackKeyword == null || _autoParsedFallbackKeyword == "") {
+      return;
+    }
+    if (_manualOverrideCategoryPkAfterFallback == null) return;
+    if (selectedCategory?.categoryPk != _manualOverrideCategoryPkAfterFallback) {
+      return;
+    }
+
+    final List<String> existingWords =
+        getCategoryCommonWords(_manualOverrideCategoryPkAfterFallback!);
+    existingWords.add(_autoParsedFallbackKeyword!);
+    await saveCategoryCommonWords(
+      _manualOverrideCategoryPkAfterFallback!,
+      existingWords,
+    );
+
+    _didFallbackToDailyByAutoParse = false;
+    _autoParsedFallbackKeyword = null;
+    _autoParsedFallbackDailyCategoryPk = null;
+    _manualOverrideCategoryPkAfterFallback = null;
+  }
+
+  TransactionCategory? _matchCategoryByCommonWords(
+      String text, List<TransactionCategory> categories) {
+    final dynamic rawWordsMap = appStateSettings["categoryCommonWords"];
+    if (rawWordsMap is! Map) return null;
+    final String loweredText = text.toLowerCase();
+
+    TransactionCategory? bestCategory;
+    int bestScore = 0;
+
+    for (final category in categories) {
+      final dynamic rawWords = rawWordsMap[category.categoryPk];
+      if (rawWords is! List) continue;
+      for (final dynamic wordValue in rawWords) {
+        final String word = wordValue.toString().trim();
+        if (word.isEmpty) continue;
+        final String loweredWord = word.toLowerCase();
+        if (loweredText.contains(loweredWord)) {
+          final int score = loweredWord.length;
+          if (score > bestScore) {
+            bestScore = score;
+            bestCategory = category;
+          }
+        }
+      }
+    }
+
+    return bestCategory;
+  }
+
+  double? _extractAmountFromText(String text) {
+    final String normalized = _normalizeAmountText(text);
+
+    final RegExp amountWithYuanPattern = RegExp(
+      r'([0-9零〇一二两三四五六七八九十百千万点\.]+)\s*(?:块钱|块|元)\s*([0-9零一二两三四五六七八九])?',
+      caseSensitive: false,
+    );
+
+    for (final Match match in amountWithYuanPattern.allMatches(normalized)) {
+      final String integerText = (match.group(1) ?? "").trim();
+      final double? integerAmount = _parseMixedNumber(integerText);
+      if (integerAmount == null) continue;
+
+      double amount = integerAmount;
+      final String? decimalCandidate = match.group(2);
+      if (decimalCandidate != null && decimalCandidate.trim().isNotEmpty) {
+        final String rest = normalized.substring(match.end).trimLeft();
+        if (!_startsWithQuantityWord(rest)) {
+          final double? decimalDigit = _parseMixedNumber(decimalCandidate);
+          if (decimalDigit != null && decimalDigit >= 0 && decimalDigit < 10) {
+            amount += decimalDigit / 10;
+          }
+        }
+      }
+      return amount;
+    }
+
+    final RegExp arabicPattern = RegExp(r'\d+(?:\.\d+)?');
+    final List<double> arabicCandidates = [];
+    for (final Match match in arabicPattern.allMatches(normalized)) {
+      final String numberText = match.group(0) ?? "";
+      final double? amount = double.tryParse(numberText);
+      if (amount == null) continue;
+      final String rest = normalized.substring(match.end).trimLeft();
+      if (_startsWithQuantityWord(rest)) continue;
+      arabicCandidates.add(amount);
+    }
+    if (arabicCandidates.isNotEmpty) {
+      return arabicCandidates.last;
+    }
+
+    final RegExp chinesePattern = RegExp(r'[零〇一二两三四五六七八九十百千万点]+');
+    final List<double> chineseCandidates = [];
+    for (final Match match in chinesePattern.allMatches(normalized)) {
+      final String numberText = match.group(0) ?? "";
+      final double? amount = _parseChineseNumber(numberText);
+      if (amount == null) continue;
+      final String rest = normalized.substring(match.end).trimLeft();
+      if (_startsWithQuantityWord(rest)) continue;
+      chineseCandidates.add(amount);
+    }
+    if (chineseCandidates.isNotEmpty) {
+      return chineseCandidates.last;
+    }
+
+    return null;
+  }
+
+  String _normalizeAmountText(String text) {
+    return text
+        .replaceAll('，', ' ')
+        .replaceAll('。', ' ')
+        .replaceAll('：', ' ')
+        .replaceAll('￥', '')
+        .replaceAll('¥', '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  bool _startsWithQuantityWord(String text) {
+    final String lowered = text.toLowerCase();
+    for (final String word in _quantityMeasureWords) {
+      if (lowered.startsWith(word.toLowerCase())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  double? _parseMixedNumber(String raw) {
+    final String value = raw.trim();
+    if (value.isEmpty) return null;
+
+    final String normalized = value.replaceAll('点', '.');
+    final double? arabic = double.tryParse(normalized);
+    if (arabic != null) return arabic;
+
+    return _parseChineseNumber(value);
+  }
+
+  double? _parseChineseNumber(String raw) {
+    String value = raw.trim();
+    if (value.isEmpty) return null;
+    value = value.replaceAll('〇', '零');
+    if (value == "半") return 0.5;
+
+    if (value.contains('点')) {
+      final List<String> split = value.split('点');
+      final double integerPart = _parseChineseInteger(split.first).toDouble();
+      String decimalText = "";
+      for (final rune in split.length > 1 ? split[1].runes : <int>[]) {
+        final String char = String.fromCharCode(rune);
+        final int? digit = _chineseDigit(char);
+        if (digit == null) continue;
+        decimalText += digit.toString();
+      }
+      if (decimalText.isEmpty) return integerPart;
+      return double.tryParse('$integerPart.$decimalText') ?? integerPart;
+    }
+
+    return _parseChineseInteger(value).toDouble();
+  }
+
+  int _parseChineseInteger(String text) {
+    int result = 0;
+    int section = 0;
+    int number = 0;
+    bool hasNumber = false;
+
+    for (final rune in text.runes) {
+      final String char = String.fromCharCode(rune);
+      final int? digit = _chineseDigit(char);
+      if (digit != null) {
+        number = digit;
+        hasNumber = true;
+        continue;
+      }
+
+      final int? unit = _chineseUnit(char);
+      if (unit != null) {
+        if (unit == 10000 || unit == 100000000) {
+          section += number;
+          if (section == 0) section = 1;
+          result += section * unit;
+          section = 0;
+          number = 0;
+        } else {
+          if (number == 0) number = 1;
+          section += number * unit;
+          number = 0;
+        }
+      }
+    }
+
+    final int finalValue = result + section + number;
+    return hasNumber ? finalValue : 0;
+  }
+
+  int? _chineseDigit(String char) {
+    switch (char) {
+      case '零':
+        return 0;
+      case '一':
+        return 1;
+      case '二':
+      case '两':
+        return 2;
+      case '三':
+        return 3;
+      case '四':
+        return 4;
+      case '五':
+        return 5;
+      case '六':
+        return 6;
+      case '七':
+        return 7;
+      case '八':
+        return 8;
+      case '九':
+        return 9;
+      default:
+        return null;
+    }
+  }
+
+  int? _chineseUnit(String char) {
+    switch (char) {
+      case '十':
+        return 10;
+      case '百':
+        return 100;
+      case '千':
+        return 1000;
+      case '万':
+        return 10000;
+      case '亿':
+        return 100000000;
+      default:
+        return null;
+    }
   }
 
   void setSelectedType(String type) {
@@ -599,6 +1082,8 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             updateGlobalState: false);
       }
 
+      await _learnCommonWordAfterManualOverrideIfNeeded();
+
       return true;
     } catch (e) {
       if (e.toString() == "category-no-longer-exists") {
@@ -793,6 +1278,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         }
       });
     }
+    Future.microtask(_ensureDefaultCategoryCommonWordsSeeded);
     if (widget.selectedBudget != null) {
       selectedBudget = widget.selectedBudget;
       selectedBudgetPk = widget.selectedBudget!.budgetPk;
@@ -1450,6 +1936,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                       ),
                       onChanged: (text) {
                         setSelectedNoteController(text, setInput: false);
+                        _scheduleNoteAutoFill(text);
                       },
                     ),
                   ),
@@ -1712,6 +2199,14 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _noteAutoParseTimer?.cancel();
+    _titleInputController.dispose();
+    _noteInputController.dispose();
+    super.dispose();
   }
 }
 

@@ -106,6 +106,15 @@ class _SelectCategoryState extends State<SelectCategory> {
       setState(() {
         selectedCategories = widget.selectedCategories ?? [];
       });
+    } else if (widget.selectedCategory?.categoryPk !=
+        oldWidget.selectedCategory?.categoryPk) {
+      setState(() {
+        if (widget.selectedCategory != null) {
+          selectedCategories = [widget.selectedCategory!.categoryPk];
+        } else {
+          selectedCategories = [];
+        }
+      });
     }
   }
 
