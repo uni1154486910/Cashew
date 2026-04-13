@@ -1551,6 +1551,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
         includeYear: selectedDate.year != DateTime.now().year);
     TimeOfDay currentTime =
         TimeOfDay(hour: selectedDate.hour, minute: selectedDate.minute);
+    final double keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     List<dynamic> transactionTypes =
         getTransactionSpecialTypesToShowGivenInitialTypeWhenAddingTransaction(
@@ -1914,90 +1915,103 @@ class _AddTransactionPageState extends State<AddTransactionPage>
             ),
 
             // ─── Bottom section: notes + tags + numpad ───
-
-            // Notes bar
-            Container(
-              height: 40,
-              padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context).dividerColor.withOpacity(0.15),
-                  ),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    appStateSettings["outlinedIcons"]
-                        ? Icons.label_outlined
-                        : Icons.label_rounded,
-                    size: 16,
-                    color: getColor(context, "textLight"),
-                  ),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: TextField(
-                      controller: _noteInputController,
-                      focusNode: _noteInputFocusNode,
-                      autofocus:
-                          widget.transaction == null && widget.autoFocusNoteOnOpen,
-                      style: TextStyle(fontSize: 13, height: 1.2),
-                      decoration: InputDecoration(
-                        hintText: "notes-placeholder".tr(),
-                        hintStyle: TextStyle(
-                          fontSize: 13,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Notes bar
+                TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  tween: Tween<double>(begin: 0, end: keyboardInset),
+                  builder: (context, inset, child) {
+                    return Transform.translate(
+                      offset: Offset(0, -inset),
+                      child: child,
+                    );
+                  },
+                  child: Container(
+                    height: 40,
+                    padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: Theme.of(context).dividerColor.withOpacity(0.15),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          appStateSettings["outlinedIcons"]
+                              ? Icons.label_outlined
+                              : Icons.label_rounded,
+                          size: 16,
                           color: getColor(context, "textLight"),
                         ),
-                        border: InputBorder.none,
-                        isCollapsed: true,
-                        contentPadding: EdgeInsetsDirectional.zero,
-                      ),
-                      onChanged: (text) {
-                        setSelectedNoteController(text, setInput: false);
-                        _scheduleNoteAutoFill(text);
-                      },
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: TextField(
+                            controller: _noteInputController,
+                            focusNode: _noteInputFocusNode,
+                            autofocus:
+                                widget.transaction == null && widget.autoFocusNoteOnOpen,
+                            style: TextStyle(fontSize: 13, height: 1.2),
+                            decoration: InputDecoration(
+                              hintText: "notes-placeholder".tr(),
+                              hintStyle: TextStyle(
+                                fontSize: 13,
+                                color: getColor(context, "textLight"),
+                              ),
+                              border: InputBorder.none,
+                              isCollapsed: true,
+                              contentPadding: EdgeInsetsDirectional.zero,
+                            ),
+                            onChanged: (text) {
+                              setSelectedNoteController(text, setInput: false);
+                              _scheduleNoteAutoFill(text);
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        AnimatedSwitcher(
+                          duration: Duration(milliseconds: 250),
+                          child: TextFont(
+                            key: ValueKey(selectedAmount.toString()),
+                            text: convertToMoney(
+                              Provider.of<AllWallets>(context),
+                              selectedAmount ?? 0,
+                              decimals: getSelectedWallet(listen: true)?.decimals,
+                              currencyKey: getSelectedWallet(listen: true)?.currency,
+                            ),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            textColor: (selectedAmount ?? 0) == 0
+                                ? getColor(context, "textLight")
+                                : selectedIncome
+                                    ? Colors.green
+                                    : categoryColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  AnimatedSwitcher(
-                    duration: Duration(milliseconds: 250),
-                    child: TextFont(
-                      key: ValueKey(selectedAmount.toString()),
-                      text: convertToMoney(
-                        Provider.of<AllWallets>(context),
-                        selectedAmount ?? 0,
-                        decimals: getSelectedWallet(listen: true)?.decimals,
-                        currencyKey: getSelectedWallet(listen: true)?.currency,
-                      ),
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      textColor: (selectedAmount ?? 0) == 0
-                          ? getColor(context, "textLight")
-                          : selectedIncome
-                              ? Colors.green
-                              : categoryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Quick tags row (date, time, transaction type, wallet, budget, etc.)
-            Container(
-              height: 36,
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context).dividerColor.withOpacity(0.1),
                   ),
                 ),
-              ),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsetsDirectional.symmetric(horizontal: 6),
-                children: [
+
+                // Quick tags row (date, time, transaction type, wallet, budget, etc.)
+                Container(
+                    height: 36,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        ),
+                      ),
+                    ),
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsetsDirectional.symmetric(horizontal: 6),
+                      children: [
                   _QuickTagChip(
                     icon: appStateSettings["outlinedIcons"]
                         ? Icons.calendar_today_outlined
@@ -2178,42 +2192,44 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                       );
                     },
                   ),
-                ],
-              ),
-            ),
+                      ],
+                    ),
+                  ),
 
-            // ─── Number pad (image-2 layout) ───
-            SafeArea(
-              top: false,
-              child: SelectAmount(
-                showEnteredNumber: false,
-                hideNextButton: true,
-                padding: EdgeInsetsDirectional.symmetric(horizontal: 0),
-                walletPkForCurrency: selectedWalletPk,
-                onlyShowCurrencyIcon: true,
-                amountPassed: (selectedAmount ?? "0").toString(),
-                setSelectedAmount: setSelectedAmount,
-                extraWidgetAboveNumbers: null,
-                numberPadBuilder: ({
-                  required Function(String) addToAmount,
-                  required VoidCallback removeToAmount,
-                  required VoidCallback removeAll,
-                  required bool Function() canChange,
-                }) {
-                  return _CompactNumPad(
-                    addToAmount: addToAmount,
-                    removeToAmount: removeToAmount,
-                    removeAll: removeAll,
-                    canChange: canChange,
-                    categoryColor: categoryColor,
-                    onAdd: () async {
-                      bool result = await addTransaction();
-                      if (result) popRoute(context);
-                    },
-                    isEditing: widget.transaction != null,
-                  );
-                },
-              ),
+                  // ─── Number pad (image-2 layout) ───
+                SafeArea(
+                    top: false,
+                    child: SelectAmount(
+                      showEnteredNumber: false,
+                      hideNextButton: true,
+                      padding: EdgeInsetsDirectional.symmetric(horizontal: 0),
+                      walletPkForCurrency: selectedWalletPk,
+                      onlyShowCurrencyIcon: true,
+                      amountPassed: (selectedAmount ?? "0").toString(),
+                      setSelectedAmount: setSelectedAmount,
+                      extraWidgetAboveNumbers: null,
+                      numberPadBuilder: ({
+                        required Function(String) addToAmount,
+                        required VoidCallback removeToAmount,
+                        required VoidCallback removeAll,
+                        required bool Function() canChange,
+                      }) {
+                        return _CompactNumPad(
+                          addToAmount: addToAmount,
+                          removeToAmount: removeToAmount,
+                          removeAll: removeAll,
+                          canChange: canChange,
+                          categoryColor: categoryColor,
+                          onAdd: () async {
+                            bool result = await addTransaction();
+                            if (result) popRoute(context);
+                          },
+                          isEditing: widget.transaction != null,
+                        );
+                      },
+                    ),
+                ),
+              ],
             ),
           ],
         ),
