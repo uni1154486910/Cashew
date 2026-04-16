@@ -1922,7 +1922,7 @@ class _AddTransactionPageState extends State<AddTransactionPage>
                 TweenAnimationBuilder<double>(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutCubic,
-                  tween: Tween<double>(begin: 0, end: keyboardInset),
+                  tween: Tween<double>(begin: 0, end: keyboardInset / 4),
                   builder: (context, inset, child) {
                     return Transform.translate(
                       offset: Offset(0, -inset),
