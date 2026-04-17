@@ -733,6 +733,27 @@ int daysBetween(DateTime from, DateTime to) {
   return (to.difference(from).inHours / 24).round();
 }
 
+int getNumWorkdaysInMonth(DateTime date) {
+  int numDays = DateTime(date.year, date.month + 1, 0).day;
+  int workdays = 0;
+  for (int i = 1; i <= numDays; i++) {
+    DateTime current = DateTime(date.year, date.month, i);
+    if (current.weekday != DateTime.saturday &&
+        current.weekday != DateTime.sunday) {
+      workdays++;
+    }
+  }
+  return workdays;
+}
+
+int getNumWorkdaysInYear(DateTime date) {
+  int workdays = 0;
+  for (int i = 1; i <= 12; i++) {
+    workdays += getNumWorkdaysInMonth(DateTime(date.year, i));
+  }
+  return workdays;
+}
+
 String getWelcomeMessage() {
   int h24 = DateTime.now().hour;
   List<String> greetings = [
@@ -832,6 +853,10 @@ getTotalSubscriptions(AllWallets allWallets, SelectedSubscriptionsType type,
           total += subscription.amount / (subscription.periodLength ?? 1);
         } else if (subscription.reoccurrence == BudgetReoccurence.yearly) {
           total += subscription.amount / 12 / (subscription.periodLength ?? 1);
+        } else if (subscription.reoccurrence == BudgetReoccurence.workday) {
+          total += subscription.amount *
+              getNumWorkdaysInMonth(today) /
+              (subscription.periodLength ?? 1);
         }
       } else if (type == SelectedSubscriptionsType.yearly) {
         DateTime firstDay = DateTime(today.year, 1, 1);
@@ -848,6 +873,10 @@ getTotalSubscriptions(AllWallets allWallets, SelectedSubscriptionsType type,
           total += subscription.amount * 12 / (subscription.periodLength ?? 1);
         } else if (subscription.reoccurrence == BudgetReoccurence.yearly) {
           total += subscription.amount / (subscription.periodLength ?? 1);
+        } else if (subscription.reoccurrence == BudgetReoccurence.workday) {
+          total += subscription.amount *
+              getNumWorkdaysInYear(today) /
+              (subscription.periodLength ?? 1);
         }
       } else if (type == SelectedSubscriptionsType.total) {
         if (subscription.reoccurrence == BudgetReoccurence.daily) {
@@ -857,6 +886,8 @@ getTotalSubscriptions(AllWallets allWallets, SelectedSubscriptionsType type,
         } else if (subscription.reoccurrence == BudgetReoccurence.monthly) {
           total += subscription.amount;
         } else if (subscription.reoccurrence == BudgetReoccurence.yearly) {
+          total += subscription.amount;
+        } else if (subscription.reoccurrence == BudgetReoccurence.workday) {
           total += subscription.amount;
         }
       }
