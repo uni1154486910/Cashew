@@ -32,13 +32,13 @@ class HomeTransactions extends StatelessWidget {
                       : null
               : null,
     );
-    int numberOfFutureDays = appStateSettings["futureTransactionDaysHomePage"];
+    // int numberOfFutureDays = appStateSettings["futureTransactionDaysHomePage"];
     return TransactionEntries(
       showNumberOfDaysUntilForFutureDates: true,
       renderType: TransactionEntriesRenderType.implicitlyAnimatedNonSlivers,
       showNoResults: false,
       DateTime.now().justDay(monthOffset: -1),
-      DateTime.now().justDay(dayOffset: numberOfFutureDays),
+      DateTime.now().justDay(dayOffset: 0),
       dateDividerColor: Colors.transparent,
       useHorizontalPaddingConstrained: false,
       pastDaysLimitToShow: 7,
