@@ -583,9 +583,9 @@ class _PullDownToAddTransactionState extends State<_PullDownToAddTransaction>
   bool _thresholdReached = false;
   bool _navigating = false;
 
-  static const double _maxPull = 70;
+  static const double _maxPull = 23.3;
   static const double _dragSpeed = 0.4;
-  static const double _swipeDownThreshold = 12;
+  static const double _swipeDownThreshold = 4;
   static const double _xCancelThreshold = 40;
   static const double _indicatorHeight = 56;
 
